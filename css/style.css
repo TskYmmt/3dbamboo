@@ -138,12 +138,13 @@ body {
     transform-origin: center;
     transition: transform 0.2s ease;
     display: inline-block;
-    padding: 0;
+    width: fit-content;
+    height: fit-content;
 }
 
 #drawing-canvas {
-    width: 200px;
-    height: 400px;
+    width: min(calc(100vw - 80px), calc((90vh - 150px) / 2));
+    aspect-ratio: 1 / 2; /* 縦横比2:1を絶対維持 */
     cursor: crosshair;
     touch-action: none;
     display: block;
@@ -430,10 +431,6 @@ body {
         overflow-y: auto;
     }
     
-    #drawing-canvas {
-        width: 150px;
-        height: 300px;
-    }
     
     .button-group {
         gap: 6px;
