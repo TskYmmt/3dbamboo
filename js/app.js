@@ -455,7 +455,7 @@ class TanabataApp {
         const tanzakuGroup = new THREE.Group();
         
         // Create tanzaku mesh
-        const geometry = new THREE.BoxGeometry(1, 2, 0.05);
+        const geometry = new THREE.BoxGeometry(1.5, 3, 0.075);
         const material = new THREE.MeshPhongMaterial({
             color: new THREE.Color().setHSL(Math.random(), 0.7, 0.8),
             side: THREE.DoubleSide
@@ -472,7 +472,7 @@ class TanabataApp {
             side: THREE.DoubleSide
         });
         const textPlane = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.9, 1.8),
+            new THREE.PlaneGeometry(1.35, 2.7),
             textMaterial
         );
         textPlane.position.z = 0.026;

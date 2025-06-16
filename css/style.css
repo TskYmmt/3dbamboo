@@ -129,8 +129,8 @@ body {
 }
 
 #canvas-container {
-    width: 160px; /* Fixed width to maintain 1:2 aspect ratio */
-    height: 320px; /* Fixed height to maintain 1:2 aspect ratio */
+    width: 100%;
+    max-width: 250px; /* Maximum width */
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
@@ -138,19 +138,21 @@ body {
     background: #fffbf0;
     position: relative;
     flex: 1; /* Take up available space */
-    max-height: calc(90vh - 200px); /* Leave space for title and buttons */
     transform-origin: center;
     transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #drawing-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1 / 2; /* Maintain 1:2 aspect ratio (width:height) */
     cursor: crosshair;
     touch-action: none;
+    object-fit: contain;
 }
 
 .button-group {
@@ -435,9 +437,7 @@ body {
     }
     
     #canvas-container {
-        width: 140px;
-        height: 280px;
-        max-height: calc(90vh - 180px); /* Leave space for title and buttons on small screens */
+        max-width: 200px;
     }
     
     .button-group {
