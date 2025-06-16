@@ -295,8 +295,8 @@ class TanabataApp {
                 
                 const sensitivity = 0.005;
                 this.euler.setFromQuaternion(this.camera.quaternion);
-                this.euler.y += deltaX * sensitivity;
-                this.euler.x += deltaY * sensitivity;
+                this.euler.y -= deltaX * sensitivity;
+                this.euler.x -= deltaY * sensitivity;
                 this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
                 this.camera.quaternion.setFromEuler(this.euler);
                 

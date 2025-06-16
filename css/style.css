@@ -130,9 +130,8 @@ body {
 }
 
 #canvas-container {
-    width: 100px; /* Fixed narrow width */
-    height: 200px; /* Fixed height to create 1:2 aspect ratio */
-    max-width: min(100px, 25vw);
+    width: min(150px, 25vw); /* Responsive width */
+    height: min(300px, 50vh); /* Height follows window size, max 50% of viewport height */
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
@@ -436,9 +435,8 @@ body {
     }
     
     #canvas-container {
-        width: 80px;
-        height: 160px;
-        max-width: min(80px, 20vw);
+        width: min(120px, 30vw);
+        height: min(240px, 40vh);
     }
     
     .button-group {
