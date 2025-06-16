@@ -129,8 +129,8 @@ body {
 }
 
 #canvas-container {
-    width: 100%;
-    max-width: 250px; /* Maximum width */
+    width: fit-content; /* Fit exactly to canvas size */
+    height: fit-content; /* Fit exactly to canvas size */
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
@@ -143,16 +143,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    max-width: 90%; /* Prevent overflow on small screens */
 }
 
 #drawing-canvas {
-    width: 100%;
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 250px; /* Maximum width */
+    width: calc(100vw - 80px); /* Responsive width based on viewport */
+    max-width: min(250px, calc(45vh)); /* Limit by viewport height too */
     aspect-ratio: 1 / 2; /* Maintain 2:1 aspect ratio (height is 2x width) */
     cursor: crosshair;
     touch-action: none;
-    object-fit: contain;
+    display: block;
 }
 
 .button-group {
@@ -437,7 +438,12 @@ body {
     }
     
     #canvas-container {
+        max-width: 85%; /* Fit smaller screens */
+    }
+    
+    #drawing-canvas {
         max-width: 200px;
+        width: calc(100vw - 60px);
     }
     
     .button-group {
