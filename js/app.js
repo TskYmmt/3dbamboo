@@ -140,76 +140,67 @@ class TanabataApp {
     }
 
     setupVirtualJoystick() {
-        // Create virtual joystick HTML
-        const joystickHTML = `
+        // Create virtual controls HTML
+        const controlsHTML = `
             <div id="virtual-controls" class="virtual-controls">
-                <div id="movement-joystick" class="joystick">
-                    <div class="joystick-base"></div>
-                    <div class="joystick-stick"></div>
+                <div id="movement-pad" class="movement-pad">
+                    <div class="pad-label up-label">上昇</div>
+                    <button class="pad-btn up-btn" data-key="q"></button>
+                    <button class="pad-btn left-btn" data-key="a"></button>
+                    <button class="pad-btn center-btn"></button>
+                    <button class="pad-btn right-btn" data-key="d"></button>
+                    <button class="pad-btn down-btn" data-key="e"></button>
+                    <button class="pad-btn forward-btn" data-key="w"></button>
+                    <button class="pad-btn backward-btn" data-key="s"></button>
+                    <div class="pad-label down-label">下降</div>
                 </div>
                 <div id="look-area" class="look-area"></div>
-                <div id="fly-buttons" class="fly-buttons">
-                    <button id="fly-up" class="fly-btn">Q</button>
-                    <button id="fly-down" class="fly-btn">E</button>
-                </div>
             </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', joystickHTML);
+        document.body.insertAdjacentHTML('beforeend', controlsHTML);
         
-        // Setup joystick events
-        this.setupJoystickEvents();
+        // Setup pad events
+        this.setupDigitalPadEvents();
         this.setupLookAreaEvents();
-        this.setupFlyButtonEvents();
     }
 
-    setupJoystickEvents() {
-        const joystick = document.getElementById('movement-joystick');
-        const stick = joystick.querySelector('.joystick-stick');
+    setupDigitalPadEvents() {
+        const padButtons = document.querySelectorAll('.pad-btn');
         
-        joystick.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const rect = joystick.getBoundingClientRect();
-            this.joystickCenter = {
-                x: rect.left + rect.width / 2,
-                y: rect.top + rect.height / 2
-            };
-            this.joystickActive = true;
-        });
-        
-        document.addEventListener('touchmove', (e) => {
-            if (this.joystickActive) {
+        padButtons.forEach(button => {
+            const key = button.dataset.key;
+            if (!key) return; // Skip center button
+            
+            // Touch events
+            button.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - this.joystickCenter.x;
-                const deltaY = touch.clientY - this.joystickCenter.y;
-                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                const maxDistance = 50;
-                
-                if (distance > maxDistance) {
-                    const angle = Math.atan2(deltaY, deltaX);
-                    this.joystickOffset.x = Math.cos(angle) * maxDistance;
-                    this.joystickOffset.y = Math.sin(angle) * maxDistance;
-                } else {
-                    this.joystickOffset.x = deltaX;
-                    this.joystickOffset.y = deltaY;
-                }
-                
-                stick.style.transform = `translate(${this.joystickOffset.x}px, ${this.joystickOffset.y}px)`;
-                
-                // Convert to movement
-                this.keys.w = this.joystickOffset.y < -20;
-                this.keys.s = this.joystickOffset.y > 20;
-                this.keys.a = this.joystickOffset.x < -20;
-                this.keys.d = this.joystickOffset.x > 20;
-            }
-        });
-        
-        document.addEventListener('touchend', () => {
-            if (this.joystickActive) {
-                this.joystickActive = false;
-                stick.style.transform = 'translate(0px, 0px)';
-                this.keys.w = this.keys.s = this.keys.a = this.keys.d = false;
-            }
+                this.keys[key] = true;
+                button.classList.add('active');
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.keys[key] = false;
+                button.classList.remove('active');
+            });
+            
+            // Mouse events for testing
+            button.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                this.keys[key] = true;
+                button.classList.add('active');
+            });
+            
+            button.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                this.keys[key] = false;
+                button.classList.remove('active');
+            });
+            
+            button.addEventListener('mouseleave', (e) => {
+                this.keys[key] = false;
+                button.classList.remove('active');
+            });
         });
     }
 
@@ -245,25 +236,6 @@ class TanabataApp {
         });
     }
 
-    setupFlyButtonEvents() {
-        document.getElementById('fly-up').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.keys.q = true;
-        });
-        document.getElementById('fly-up').addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.keys.q = false;
-        });
-        
-        document.getElementById('fly-down').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.keys.e = true;
-        });
-        document.getElementById('fly-down').addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.keys.e = false;
-        });
-    }
 
 
     loadBambooModel() {

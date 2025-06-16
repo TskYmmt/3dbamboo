@@ -96,44 +96,56 @@ body {
 
 .modal-content {
     background: white;
-    padding: 30px;
+    padding: 20px;
     border-radius: 20px;
-    max-width: 90%;
-    max-height: 90%;
-    width: 400px;
+    max-width: 95vw;
+    max-height: 95vh;
+    width: min(400px, 95vw);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .modal-content h1 {
     color: #333;
-    margin-bottom: 20px;
-    font-size: 28px;
+    margin-bottom: 15px;
+    font-size: clamp(20px, 5vw, 28px);
+    flex-shrink: 0;
 }
 
 .modal-content h2 {
     color: #333;
-    margin-bottom: 20px;
-    font-size: 24px;
+    margin-bottom: 15px;
+    font-size: clamp(18px, 4vw, 24px);
+    flex-shrink: 0;
 }
 
 .modal-content p {
     color: #666;
-    margin-bottom: 30px;
-    font-size: 16px;
+    margin-bottom: 20px;
+    font-size: clamp(14px, 3vw, 16px);
+    flex-shrink: 0;
 }
 
 #canvas-container {
     width: 100%;
-    aspect-ratio: 1/2;
-    max-width: 300px;
-    margin: 0 auto 20px;
+    height: 0;
+    padding-bottom: 60%; /* 5:3 aspect ratio for better mobile fit */
+    max-width: min(300px, 80vw);
+    margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
     background: #fffbf0;
+    position: relative;
+    flex-shrink: 0;
 }
 
 #drawing-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     cursor: crosshair;
@@ -142,19 +154,26 @@ body {
 
 .button-group {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 10px;
+    flex-shrink: 0;
 }
 
 .primary-btn, .secondary-btn {
-    padding: 12px 24px;
+    padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
     border: none;
     border-radius: 25px;
-    font-size: 16px;
+    font-size: clamp(12px, 3vw, 16px);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    max-width: 120px;
 }
 
 .primary-btn {
@@ -192,91 +211,131 @@ body {
     z-index: 100;
 }
 
-.joystick {
+/* Digital Movement Pad */
+.movement-pad {
     position: absolute;
-    bottom: 30px;
-    left: 30px;
+    bottom: 20px;
+    left: 20px;
     width: 120px;
     height: 120px;
     pointer-events: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr 1fr auto;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 8px;
 }
 
-.joystick-base {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    border: 3px solid rgba(255, 255, 255, 0.5);
-    position: relative;
-}
-
-.joystick-stick {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.8);
-    border: 2px solid rgba(255, 255, 255, 1);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    transition: none;
-}
-
-.look-area {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 60%;
-    height: 100%;
-    pointer-events: auto;
-    background: rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 14px;
-    text-align: center;
-}
-
-.look-area::before {
-    content: "Look around";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-}
-
-.fly-buttons {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: auto;
-}
-
-.fly-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+.pad-btn {
     background: rgba(255, 255, 255, 0.3);
     border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
     color: white;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
     user-select: none;
+    touch-action: manipulation;
+    transition: all 0.1s;
+    min-height: 28px;
+    min-width: 28px;
+}
+
+.pad-btn:active,
+.pad-btn.active {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0.95);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Digital pad layout */
+.up-btn { grid-column: 2; grid-row: 2; }     /* W */
+.left-btn { grid-column: 1; grid-row: 3; }   /* A */
+.center-btn { 
+    grid-column: 2; 
+    grid-row: 3; 
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+.right-btn { grid-column: 3; grid-row: 3; }  /* D */
+.down-btn { grid-column: 2; grid-row: 4; }   /* S */
+
+/* Up/Down fly buttons */
+.forward-btn { 
+    grid-column: 2; 
+    grid-row: 1; 
+    background: rgba(100, 200, 100, 0.4);
+    border-color: rgba(100, 200, 100, 0.6);
+}
+.backward-btn { 
+    grid-column: 2; 
+    grid-row: 5; 
+    background: rgba(200, 100, 100, 0.4);
+    border-color: rgba(200, 100, 100, 0.6);
+}
+
+.forward-btn:active,
+.forward-btn.active {
+    background: rgba(100, 200, 100, 0.7);
+}
+
+.backward-btn:active,
+.backward-btn.active {
+    background: rgba(200, 100, 100, 0.7);
+}
+
+/* Labels */
+.pad-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.fly-btn:active {
-    background: rgba(255, 255, 255, 0.5);
-    transform: scale(0.95);
+.up-label { 
+    grid-column: 1 / 4; 
+    grid-row: 1;
+    margin-bottom: -4px;
+}
+
+.down-label { 
+    grid-column: 1 / 4; 
+    grid-row: 5;
+    margin-top: -4px;
+}
+
+/* Circular Look Area */
+.look-area {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    user-select: none;
+}
+
+.look-area::before {
+    content: "視点\A移動";
+    white-space: pre;
+    pointer-events: none;
 }
 
 /* Crosshair for PC */
@@ -330,26 +389,59 @@ body {
 
 @media (max-width: 480px) {
     .ui-btn {
-        bottom: 20px;
-        right: 20px;
-        padding: 12px 24px;
+        bottom: 150px; /* Move up to avoid virtual controls */
+        right: 50%;
+        transform: translateX(50%);
+        padding: 10px 20px;
         font-size: 14px;
     }
     
     #info-panel {
-        font-size: 12px;
-        padding: 8px 16px;
+        font-size: 11px;
+        padding: 6px 12px;
+        top: 10px;
     }
     
     .modal-content {
-        padding: 20px;
+        padding: 15px;
+        max-height: 90vh;
     }
     
-    .modal-content h1 {
-        font-size: 24px;
+    #canvas-container {
+        padding-bottom: 50%; /* Shorter for small screens */
+        max-width: 90vw;
     }
     
-    .modal-content h2 {
-        font-size: 20px;
+    .button-group {
+        gap: 6px;
+    }
+    
+    .primary-btn, .secondary-btn {
+        font-size: 12px;
+        padding: 8px 12px;
+        max-width: 100px;
+    }
+    
+    /* Adjust virtual controls for small screens */
+    .movement-pad {
+        width: 100px;
+        height: 100px;
+        bottom: 15px;
+        left: 15px;
+        padding: 6px;
+    }
+    
+    .look-area {
+        width: 100px;
+        height: 100px;
+        bottom: 15px;
+        right: 15px;
+        font-size: 10px;
+    }
+    
+    .pad-btn {
+        min-height: 24px;
+        min-width: 24px;
+        font-size: 10px;
     }
 }
