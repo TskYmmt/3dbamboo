@@ -129,27 +129,20 @@ body {
 }
 
 #canvas-container {
-    width: fit-content; /* Fit exactly to canvas size */
-    height: fit-content; /* Fit exactly to canvas size */
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
     background: #fffbf0;
     position: relative;
-    flex: 1; /* Take up available space */
+    flex: 1;
     transform-origin: center;
     transition: transform 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 90%; /* Prevent overflow on small screens */
+    display: inline-block; /* Change to inline-block to fit content exactly */
 }
 
 #drawing-canvas {
-    max-width: 250px; /* Maximum width */
-    width: calc(100vw - 80px); /* Responsive width based on viewport */
-    max-width: min(250px, calc(45vh)); /* Limit by viewport height too */
+    width: min(250px, calc(100vw - 80px)); /* Responsive width */
     aspect-ratio: 1 / 2; /* Maintain 2:1 aspect ratio (height is 2x width) */
     cursor: crosshair;
     touch-action: none;
@@ -438,8 +431,7 @@ body {
     }
     
     #drawing-canvas {
-        max-width: 200px;
-        width: calc(100vw - 60px);
+        width: min(200px, calc(100vw - 60px));
     }
     
     .button-group {
