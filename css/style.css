@@ -437,10 +437,6 @@ body {
         overflow-y: auto;
     }
     
-    #canvas-container {
-        max-width: 85%; /* Fit smaller screens */
-    }
-    
     #drawing-canvas {
         max-width: 200px;
         width: calc(100vw - 60px);
