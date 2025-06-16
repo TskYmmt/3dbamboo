@@ -150,15 +150,14 @@ class TanabataApp {
                     <button class="pad-btn right-btn" data-key="d">→</button>
                     <button class="pad-btn down-btn" data-key="s">↓</button>
                 </div>
-                <div id="look-area" class="look-area"></div>
-                <div id="pinch-help" class="pinch-help">ピンチで上下移動</div>
+                <div id="pinch-help" class="pinch-help">ピンチで前後移動</div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', controlsHTML);
         
         // Setup pad events
         this.setupDigitalPadEvents();
-        this.setupLookAreaEvents();
+        this.setupFullScreenLookEvents();
         this.setupPinchControls();
     }
 
@@ -190,13 +189,13 @@ class TanabataApp {
                 
                 if (Math.abs(deltaDistance) > 10) { // Threshold to avoid jitter
                     if (deltaDistance > 0) {
-                        // Pinch out = move up
-                        this.keys.q = true;
-                        this.keys.e = false;
+                        // Pinch out = move forward (Z+)
+                        this.keys.w = true;
+                        this.keys.s = false;
                     } else {
-                        // Pinch in = move down
-                        this.keys.e = true;
-                        this.keys.q = false;
+                        // Pinch in = move backward (Z-)
+                        this.keys.s = true;
+                        this.keys.w = false;
                     }
                     initialDistance = currentDistance;
                 }
@@ -206,8 +205,8 @@ class TanabataApp {
         document.addEventListener('touchend', (e) => {
             if (e.touches.length < 2) {
                 isPinching = false;
-                this.keys.q = false;
-                this.keys.e = false;
+                this.keys.w = false;
+                this.keys.s = false;
             }
         });
     }
@@ -252,18 +251,31 @@ class TanabataApp {
         });
     }
 
-    setupLookAreaEvents() {
-        const lookArea = document.getElementById('look-area');
+    setupFullScreenLookEvents() {
         let lastTouch = null;
+        let isPadTouch = false;
         
-        lookArea.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            lastTouch = e.touches[0];
+        document.addEventListener('touchstart', (e) => {
+            // Check if touch is on movement pad
+            const movementPad = document.getElementById('movement-pad');
+            if (movementPad && movementPad.contains(e.target)) {
+                isPadTouch = true;
+                return;
+            }
+            
+            // Only handle single touch for look (not pinch)
+            if (e.touches.length === 1) {
+                isPadTouch = false;
+                lastTouch = e.touches[0];
+            }
         });
         
-        lookArea.addEventListener('touchmove', (e) => {
-            e.preventDefault();
+        document.addEventListener('touchmove', (e) => {
+            // Skip if touching movement pad or pinching
+            if (isPadTouch || e.touches.length !== 1) return;
+            
             if (lastTouch) {
+                e.preventDefault();
                 const touch = e.touches[0];
                 const deltaX = touch.clientX - lastTouch.clientX;
                 const deltaY = touch.clientY - lastTouch.clientY;
@@ -279,8 +291,11 @@ class TanabataApp {
             }
         });
         
-        lookArea.addEventListener('touchend', () => {
-            lastTouch = null;
+        document.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                lastTouch = null;
+                isPadTouch = false;
+            }
         });
     }
 
@@ -902,9 +917,9 @@ class TanabataApp {
         if (this.keys.d) direction.add(right);
         if (this.keys.a) direction.sub(right);
         
-        // Vertical movement (flying)
-        if (this.keys.q) direction.y += 1; // Q = up
-        if (this.keys.e) direction.y -= 1; // E = down
+        // Vertical movement (flying) - Fixed Y/Z axis
+        if (this.keys.q) direction.z += 1; // Q = up (positive Z)
+        if (this.keys.e) direction.z -= 1; // E = down (negative Z)
         
         // Apply movement
         if (direction.length() > 0) {
