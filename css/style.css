@@ -132,18 +132,18 @@ body {
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
-    overflow: hidden;
     background: #fffbf0;
     position: relative;
     flex: 1;
     transform-origin: center;
     transition: transform 0.2s ease;
-    display: inline-block; /* Change to inline-block to fit content exactly */
+    display: inline-block;
+    padding: 0;
 }
 
 #drawing-canvas {
-    width: min(250px, max(150px, calc(100vw - 80px))); /* Responsive width with minimum 150px */
-    aspect-ratio: 1 / 2; /* Maintain 2:1 aspect ratio (height is 2x width) */
+    width: 200px;
+    height: 400px;
     cursor: crosshair;
     touch-action: none;
     display: block;
@@ -431,7 +431,8 @@ body {
     }
     
     #drawing-canvas {
-        width: min(200px, max(120px, calc(100vw - 60px))); /* Minimum 120px on mobile */
+        width: 150px;
+        height: 300px;
     }
     
     .button-group {

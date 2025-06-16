@@ -402,7 +402,7 @@ class TanabataApp {
         const segments = Math.floor(height / segmentHeight);
         
         const bambooMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x4a7c4e,
+            color: 0x6cbf47,
             shininess: 30
         });
         
