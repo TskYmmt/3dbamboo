@@ -144,17 +144,14 @@ class TanabataApp {
         const controlsHTML = `
             <div id="virtual-controls" class="virtual-controls">
                 <div id="movement-pad" class="movement-pad">
-                    <div class="pad-label up-label">上昇</div>
-                    <button class="pad-btn up-btn" data-key="q"></button>
-                    <button class="pad-btn left-btn" data-key="a"></button>
+                    <button class="pad-btn up-btn" data-key="w">↑</button>
+                    <button class="pad-btn left-btn" data-key="a">←</button>
                     <button class="pad-btn center-btn"></button>
-                    <button class="pad-btn right-btn" data-key="d"></button>
-                    <button class="pad-btn down-btn" data-key="e"></button>
-                    <button class="pad-btn forward-btn" data-key="w"></button>
-                    <button class="pad-btn backward-btn" data-key="s"></button>
-                    <div class="pad-label down-label">下降</div>
+                    <button class="pad-btn right-btn" data-key="d">→</button>
+                    <button class="pad-btn down-btn" data-key="s">↓</button>
                 </div>
                 <div id="look-area" class="look-area"></div>
+                <div id="pinch-help" class="pinch-help">ピンチで上下移動</div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', controlsHTML);
@@ -162,6 +159,57 @@ class TanabataApp {
         // Setup pad events
         this.setupDigitalPadEvents();
         this.setupLookAreaEvents();
+        this.setupPinchControls();
+    }
+
+    setupPinchControls() {
+        let initialDistance = 0;
+        let isPinching = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                isPinching = true;
+            }
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && isPinching) {
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+                
+                const deltaDistance = currentDistance - initialDistance;
+                
+                if (Math.abs(deltaDistance) > 10) { // Threshold to avoid jitter
+                    if (deltaDistance > 0) {
+                        // Pinch out = move up
+                        this.keys.q = true;
+                        this.keys.e = false;
+                    } else {
+                        // Pinch in = move down
+                        this.keys.e = true;
+                        this.keys.q = false;
+                    }
+                    initialDistance = currentDistance;
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                isPinching = false;
+                this.keys.q = false;
+                this.keys.e = false;
+            }
+        });
     }
 
     setupDigitalPadEvents() {
@@ -581,6 +629,39 @@ class TanabataApp {
         await this.saveTanzakuToServer(tanzaku);
         
         this.hideTanzakuEditor();
+        
+        // Enter tanzaku placement mode
+        this.selectedTanzaku = tanzaku;
+        tanzaku.children[0].material.emissive = new THREE.Color(0xffff00);
+        tanzaku.children[0].material.emissiveIntensity = 0.3;
+        
+        // Show placement message
+        this.showPlacementMessage();
+    }
+
+    showPlacementMessage() {
+        // Create placement message overlay
+        const messageHTML = `
+            <div id="placement-message" class="placement-message">
+                <div class="message-content">
+                    <h3>短冊を飾りたい場所をタップしてください</h3>
+                    <p>竹の表面をタップすると短冊が移動します</p>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', messageHTML);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hidePlacementMessage();
+        }, 5000);
+    }
+
+    hidePlacementMessage() {
+        const message = document.getElementById('placement-message');
+        if (message) {
+            message.remove();
+        }
     }
 
     async loadExistingTanzaku() {
@@ -863,6 +944,9 @@ class TanabataApp {
                     // Remove highlight
                     tanzakuGroup.children[0].material.emissive = new THREE.Color(0x000000);
                     tanzakuGroup.children[0].material.emissiveIntensity = 0;
+                    
+                    // Hide placement message if visible
+                    this.hidePlacementMessage();
                 } else {
                     // First click - select tanzaku
                     if (this.selectedTanzaku) {
@@ -886,6 +970,9 @@ class TanabataApp {
             this.selectedTanzaku.children[0].material.emissive = new THREE.Color(0x000000);
             this.selectedTanzaku.children[0].material.emissiveIntensity = 0;
             this.selectedTanzaku = null;
+            
+            // Hide placement message if visible
+            this.hidePlacementMessage();
         }
     }
 
