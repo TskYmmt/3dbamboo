@@ -144,11 +144,15 @@ class TanabataApp {
         const controlsHTML = `
             <div id="virtual-controls" class="virtual-controls">
                 <div id="movement-pad" class="movement-pad">
-                    <button class="pad-btn up-btn" data-key="q">↑</button>
+                    <button class="pad-btn up-btn" data-key="w">↑</button>
                     <button class="pad-btn left-btn" data-key="a">←</button>
                     <button class="pad-btn center-btn"></button>
                     <button class="pad-btn right-btn" data-key="d">→</button>
-                    <button class="pad-btn down-btn" data-key="e">↓</button>
+                    <button class="pad-btn down-btn" data-key="s">↓</button>
+                </div>
+                <div id="vertical-pad" class="vertical-pad">
+                    <button class="pad-btn vertical-up-btn" data-key="q">↑</button>
+                    <button class="pad-btn vertical-down-btn" data-key="e">↓</button>
                 </div>
                 <div id="pinch-help" class="pinch-help">ピンチで前後移動</div>
             </div>
@@ -256,9 +260,11 @@ class TanabataApp {
         let isPadTouch = false;
         
         document.addEventListener('touchstart', (e) => {
-            // Check if touch is on movement pad
+            // Check if touch is on movement pad or vertical pad
             const movementPad = document.getElementById('movement-pad');
-            if (movementPad && movementPad.contains(e.target)) {
+            const verticalPad = document.getElementById('vertical-pad');
+            if ((movementPad && movementPad.contains(e.target)) || 
+                (verticalPad && verticalPad.contains(e.target))) {
                 isPadTouch = true;
                 return;
             }
@@ -267,6 +273,9 @@ class TanabataApp {
             if (e.touches.length === 1) {
                 isPadTouch = false;
                 lastTouch = e.touches[0];
+            } else {
+                // Multiple touches - clear lastTouch to prevent view jumping
+                lastTouch = null;
             }
         });
         
@@ -299,6 +308,12 @@ class TanabataApp {
             if (e.touches.length === 0) {
                 lastTouch = null;
                 isPadTouch = false;
+            } else if (e.touches.length === 1) {
+                // If going from multi-touch to single touch, reset lastTouch to prevent jumping
+                lastTouch = e.touches[0];
+            } else {
+                // Still multi-touch, clear lastTouch
+                lastTouch = null;
             }
         });
     }
