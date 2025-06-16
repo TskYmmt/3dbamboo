@@ -274,6 +274,10 @@ class TanabataApp {
             // Skip if touching movement pad or pinching
             if (isPadTouch || e.touches.length !== 1) return;
             
+            // Skip if tanzaku editor is open
+            const tanzakuEditor = document.getElementById('tanzaku-editor');
+            if (tanzakuEditor && !tanzakuEditor.classList.contains('hidden')) return;
+            
             if (lastTouch) {
                 e.preventDefault();
                 const touch = e.touches[0];
@@ -282,8 +286,8 @@ class TanabataApp {
                 
                 const sensitivity = 0.005;
                 this.euler.setFromQuaternion(this.camera.quaternion);
-                this.euler.y -= deltaX * sensitivity;
-                this.euler.x -= deltaY * sensitivity;
+                this.euler.y += deltaX * sensitivity;
+                this.euler.x += deltaY * sensitivity;
                 this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
                 this.camera.quaternion.setFromEuler(this.euler);
                 
@@ -533,6 +537,7 @@ class TanabataApp {
         
         // Setup drawing canvas
         this.setupDrawingCanvas();
+        this.setupCanvasZoom();
     }
 
     setupDrawingCanvas() {
@@ -615,6 +620,59 @@ class TanabataApp {
         
         canvas.addEventListener('mouseup', () => {
             isDrawing = false;
+        });
+    }
+
+    setupCanvasZoom() {
+        const container = document.getElementById('canvas-container');
+        let scale = 1;
+        let initialDistance = 0;
+        let isZooming = false;
+
+        // Touch events for pinch zoom
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                isZooming = true;
+            }
+        });
+
+        container.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && isZooming) {
+                e.preventDefault();
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const dx = touch2.clientX - touch1.clientX;
+                const dy = touch2.clientY - touch1.clientY;
+                const currentDistance = Math.sqrt(dx * dx + dy * dy);
+                
+                const scaleFactor = currentDistance / initialDistance;
+                const newScale = Math.max(0.5, Math.min(3, scale * scaleFactor)); // Limit between 0.5x and 3x
+                
+                container.style.transform = `scale(${newScale})`;
+                
+                initialDistance = currentDistance;
+                scale = newScale;
+            }
+        });
+
+        container.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                isZooming = false;
+            }
+        });
+
+        // Mouse wheel for desktop
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.max(0.5, Math.min(3, scale * delta));
+            container.style.transform = `scale(${scale})`;
         });
     }
 
