@@ -144,11 +144,11 @@ class TanabataApp {
         const controlsHTML = `
             <div id="virtual-controls" class="virtual-controls">
                 <div id="movement-pad" class="movement-pad">
-                    <button class="pad-btn up-btn" data-key="w">↑</button>
+                    <button class="pad-btn up-btn" data-key="q">↑</button>
                     <button class="pad-btn left-btn" data-key="a">←</button>
                     <button class="pad-btn center-btn"></button>
                     <button class="pad-btn right-btn" data-key="d">→</button>
-                    <button class="pad-btn down-btn" data-key="s">↓</button>
+                    <button class="pad-btn down-btn" data-key="e">↓</button>
                 </div>
                 <div id="pinch-help" class="pinch-help">ピンチで前後移動</div>
             </div>
@@ -189,11 +189,11 @@ class TanabataApp {
                 
                 if (Math.abs(deltaDistance) > 10) { // Threshold to avoid jitter
                     if (deltaDistance > 0) {
-                        // Pinch out = move forward (Z+)
+                        // Pinch out = move forward 
                         this.keys.w = true;
                         this.keys.s = false;
                     } else {
-                        // Pinch in = move backward (Z-)
+                        // Pinch in = move backward
                         this.keys.s = true;
                         this.keys.w = false;
                     }
@@ -661,15 +661,16 @@ class TanabataApp {
                 <div class="message-content">
                     <h3>短冊を飾りたい場所をタップしてください</h3>
                     <p>竹の表面をタップすると短冊が移動します</p>
+                    <button id="placement-ok-btn" class="primary-btn" style="margin-top: 15px;">OK</button>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', messageHTML);
         
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
+        // Add click handler for OK button
+        document.getElementById('placement-ok-btn').addEventListener('click', () => {
             this.hidePlacementMessage();
-        }, 5000);
+        });
     }
 
     hidePlacementMessage() {
@@ -917,9 +918,9 @@ class TanabataApp {
         if (this.keys.d) direction.add(right);
         if (this.keys.a) direction.sub(right);
         
-        // Vertical movement (flying) - Fixed Y/Z axis
-        if (this.keys.q) direction.z += 1; // Q = up (positive Z)
-        if (this.keys.e) direction.z -= 1; // E = down (negative Z)
+        // Vertical movement (flying) - Y axis for up/down
+        if (this.keys.q) direction.y += 1; // Q = up (positive Y)
+        if (this.keys.e) direction.y -= 1; // E = down (negative Y)
         
         // Apply movement
         if (direction.length() > 0) {

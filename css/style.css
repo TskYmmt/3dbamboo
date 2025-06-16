@@ -99,12 +99,12 @@ body {
     padding: 20px;
     border-radius: 20px;
     max-width: 95vw;
-    max-height: 95vh;
+    max-height: 90vh;
     width: min(400px, 95vw);
     text-align: center;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .modal-content h1 {
@@ -388,7 +388,8 @@ body {
     
     .modal-content {
         padding: 15px;
-        max-height: 90vh;
+        max-height: 85vh;
+        overflow-y: auto;
     }
     
     #canvas-container {
