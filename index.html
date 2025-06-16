@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>デジタル七夕 - 願い事を短冊に</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="crosshair"></div>
+        <div id="main-scene" class="scene-container">
+            <canvas id="three-canvas"></canvas>
+            <div id="ui-overlay">
+                <button id="add-tanzaku-btn" class="ui-btn">
+                    <span>✨ 短冊を追加</span>
+                </button>
+                <div id="info-panel">
+                    <p>PC: クリックでマウスルック、WASD移動、QE上下、F選択、ESC解除 | スマホ: 仮想スティック操作</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tanzaku-editor" class="modal hidden">
+            <div class="modal-content">
+                <h2>願い事を書きましょう</h2>
+                <div id="canvas-container">
+                    <canvas id="drawing-canvas"></canvas>
+                </div>
+                <div class="button-group">
+                    <button id="clear-btn" class="secondary-btn">クリア</button>
+                    <button id="submit-tanzaku-btn" class="primary-btn">短冊を飾る</button>
+                    <button id="cancel-tanzaku-btn" class="secondary-btn">キャンセル</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="qr-entry" class="modal">
+            <div class="modal-content">
+                <h1>デジタル七夕へようこそ</h1>
+                <p>願い事を短冊に書いて、竹に飾りましょう</p>
+                <button id="enter-btn" class="primary-btn large-btn">入場する</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
