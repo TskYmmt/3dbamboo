@@ -475,7 +475,7 @@ class TanabataApp {
             new THREE.PlaneGeometry(1.35, 2.7),
             textMaterial
         );
-        textPlane.position.z = 0.025; // Slightly in front of the tanzaku surface
+        textPlane.position.z = 0.035; // Further in front of the tanzaku surface
         
         tanzakuGroup.add(tanzaku);
         tanzakuGroup.add(textPlane);
