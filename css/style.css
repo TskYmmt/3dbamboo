@@ -214,33 +214,33 @@ body {
 /* Digital Movement Pad */
 .movement-pad {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    width: 120px;
-    height: 120px;
+    bottom: 40px;
+    left: 50px;
+    width: 160px;
+    height: 160px;
     pointer-events: auto;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto 1fr 1fr 1fr auto;
-    gap: 2px;
+    gap: 3px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 8px;
+    border-radius: 20px;
+    padding: 12px;
 }
 
 .pad-btn {
     background: rgba(255, 255, 255, 0.3);
     border: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 8px;
+    border-radius: 10px;
     color: white;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
     user-select: none;
     touch-action: manipulation;
     transition: all 0.1s;
-    min-height: 28px;
-    min-width: 28px;
+    min-height: 36px;
+    min-width: 36px;
 }
 
 .pad-btn:active,
@@ -314,10 +314,10 @@ body {
 /* Circular Look Area */
 .look-area {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 120px;
-    height: 120px;
+    bottom: 40px;
+    right: 50px;
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
     pointer-events: auto;
     background: rgba(255, 255, 255, 0.1);
@@ -326,7 +326,7 @@ body {
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     text-align: center;
     user-select: none;
@@ -389,7 +389,7 @@ body {
 
 @media (max-width: 480px) {
     .ui-btn {
-        bottom: 150px; /* Move up to avoid virtual controls */
+        bottom: 220px; /* Move up to avoid larger virtual controls */
         right: 50%;
         transform: translateX(50%);
         padding: 10px 20px;
@@ -424,24 +424,24 @@ body {
     
     /* Adjust virtual controls for small screens */
     .movement-pad {
-        width: 100px;
-        height: 100px;
-        bottom: 15px;
-        left: 15px;
-        padding: 6px;
+        width: 140px;
+        height: 140px;
+        bottom: 30px;
+        left: 30px;
+        padding: 8px;
     }
     
     .look-area {
-        width: 100px;
-        height: 100px;
-        bottom: 15px;
-        right: 15px;
-        font-size: 10px;
+        width: 140px;
+        height: 140px;
+        bottom: 30px;
+        right: 30px;
+        font-size: 12px;
     }
     
     .pad-btn {
-        min-height: 24px;
-        min-width: 24px;
-        font-size: 10px;
+        min-height: 30px;
+        min-width: 30px;
+        font-size: 12px;
     }
 }
