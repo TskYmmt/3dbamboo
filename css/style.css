@@ -142,7 +142,7 @@ body {
 }
 
 #drawing-canvas {
-    width: min(250px, calc(100vw - 80px)); /* Responsive width */
+    width: min(250px, max(150px, calc(100vw - 80px))); /* Responsive width with minimum 150px */
     aspect-ratio: 1 / 2; /* Maintain 2:1 aspect ratio (height is 2x width) */
     cursor: crosshair;
     touch-action: none;
@@ -431,7 +431,7 @@ body {
     }
     
     #drawing-canvas {
-        width: min(200px, calc(100vw - 60px));
+        width: min(200px, max(120px, calc(100vw - 60px))); /* Minimum 120px on mobile */
     }
     
     .button-group {
