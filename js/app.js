@@ -56,13 +56,13 @@ class TanabataApp {
         // Camera
         const aspect = window.innerWidth / window.innerHeight;
         this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-        this.camera.position.set(0, 5, 10);
+        this.camera.position.set(0, 8, 20);
         if (this.bambooModel) {
             const box = new THREE.Box3().setFromObject(this.bambooModel);
             const center = box.getCenter(new THREE.Vector3());
             this.camera.lookAt(center);
         } else {
-            this.camera.lookAt(0, 3, 0);
+            this.camera.lookAt(0, 5, 0);
         }
         
         // Renderer
@@ -98,9 +98,9 @@ class TanabataApp {
     }
 
     setupControls() {
-        // Set initial camera position
-        this.camera.position.set(0, 5, 10);
-        this.camera.lookAt(0, 3, 0);
+        // Set initial camera position (moved further back)
+        this.camera.position.set(0, 8, 20);
+        this.camera.lookAt(0, 5, 0);
         
         if (!this.isMobile) {
             // PC: Setup pointer lock for mouse look

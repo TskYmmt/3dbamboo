@@ -99,13 +99,12 @@ body {
     padding: 20px;
     border-radius: 20px;
     max-width: 95vw;
-    max-height: 90vh;
+    height: 90vh; /* Fixed height to maximize canvas space */
     width: min(400px, 95vw);
     text-align: center;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding-bottom: 60px; /* Extra space to ensure buttons are visible when zoomed */
 }
 
 .modal-content h1 {
@@ -130,15 +129,16 @@ body {
 }
 
 #canvas-container {
-    width: min(150px, 25vw); /* Responsive width */
-    height: min(300px, 50vh); /* Height follows window size, max 50% of viewport height */
+    width: 160px; /* Fixed width to maintain 1:2 aspect ratio */
+    height: 320px; /* Fixed height to maintain 1:2 aspect ratio */
     margin: 0 auto 15px;
     border: 2px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
     background: #fffbf0;
     position: relative;
-    flex-shrink: 0;
+    flex: 1; /* Take up available space */
+    max-height: calc(90vh - 200px); /* Leave space for title and buttons */
     transform-origin: center;
     transition: transform 0.2s ease;
 }
@@ -430,13 +430,14 @@ body {
     
     .modal-content {
         padding: 15px;
-        max-height: 85vh;
+        height: 90vh;
         overflow-y: auto;
     }
     
     #canvas-container {
-        width: min(120px, 30vw);
-        height: min(240px, 40vh);
+        width: 140px;
+        height: 280px;
+        max-height: calc(90vh - 180px); /* Leave space for title and buttons on small screens */
     }
     
     .button-group {
