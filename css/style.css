@@ -143,8 +143,8 @@ body {
 }
 
 #drawing-canvas {
-    width: max(400px, min(calc(100vw - 80px), calc((90vh - 150px) / 2)));
-    height: calc(max(400px, min(calc(100vw - 80px), calc((90vh - 150px) / 2))) * 2);
+    width: max(370px, min(calc(100vw - 80px), calc((90vh - 150px) / 2)));
+    height: calc(max(370px, min(calc(100vw - 80px), calc((90vh - 150px) / 2))) * 2);
     cursor: crosshair;
     touch-action: none;
     display: block;
