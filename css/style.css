@@ -196,6 +196,8 @@ body {
 .large-btn {
     padding: 18px 36px;
     font-size: 20px;
+    min-width: 200px;
+    margin: 20px auto;
 }
 
 /* Virtual Controls for Mobile */

@@ -29,7 +29,7 @@ class TanabataApp {
         this.joystickOffset = { x: 0, y: 0 };
         
         // API settings
-        this.apiBaseUrl = window.location.origin;
+        this.apiBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8005';
         this.loadingTanzaku = false;
         
         this.init();
@@ -40,7 +40,9 @@ class TanabataApp {
         this.setupLights();
         this.setupControls();
         this.loadBambooModel();
+        this.loadCharacterModel();
         this.setupEventListeners();
+        this.loadImageTanzaku();
         this.loadExistingTanzaku();
         this.animate();
         
@@ -56,7 +58,7 @@ class TanabataApp {
         // Camera
         const aspect = window.innerWidth / window.innerHeight;
         this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-        this.camera.position.set(0, 8, 20);
+        this.camera.position.set(0, 10, 35);
         if (this.bambooModel) {
             const box = new THREE.Box3().setFromObject(this.bambooModel);
             const center = box.getCenter(new THREE.Vector3());
@@ -98,8 +100,8 @@ class TanabataApp {
     }
 
     setupControls() {
-        // Set initial camera position (moved further back)
-        this.camera.position.set(0, 8, 20);
+        // Set initial camera position (moved much further back)
+        this.camera.position.set(0, 10, 35);
         this.camera.lookAt(0, 5, 0);
         
         if (!this.isMobile) {
@@ -361,6 +363,47 @@ class TanabataApp {
         ground.receiveShadow = true;
         this.scene.add(ground);
     }
+
+    loadCharacterModel() {
+        // Load the GLB character model
+        const loader = new THREE.GLTFLoader();
+        loader.load('../model/kofre.glb', 
+            (gltf) => {
+                this.characterModel = gltf.scene;
+                
+                // Debug: Check model size
+                const box = new THREE.Box3().setFromObject(this.characterModel);
+                const size = box.getSize(new THREE.Vector3());
+                console.log('Character model size:', size);
+                console.log('Character model position before scaling:', this.characterModel.position);
+                
+                // Scale to human size (make it bigger if too small)
+                this.characterModel.scale.set(5, 5, 5);
+                
+                // Position character closer to camera and more visible
+                this.characterModel.position.set(10, 0, 15); // Closer to camera
+                this.characterModel.rotation.y = Math.PI * 0.3; // Face towards camera
+                
+                // Enable shadows for all meshes in the character model
+                this.characterModel.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        console.log('Found mesh in character:', child.name);
+                    }
+                });
+                
+                this.scene.add(this.characterModel);
+                console.log('Character model loaded and added to scene at position:', this.characterModel.position);
+            },
+            (xhr) => {
+                console.log('Character loading: ' + (xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            (error) => {
+                console.error('Error loading character model:', error);
+            }
+        );
+    }
     
     createImprovedBamboo() {
         // Create a more detailed bamboo model
@@ -481,10 +524,10 @@ class TanabataApp {
         tanzakuGroup.add(textPlane);
         
         // Add string
-        const stringGeometry = new THREE.CylinderGeometry(0.01, 0.01, 1);
+        const stringGeometry = new THREE.CylinderGeometry(0.01, 0.01, 2);
         const stringMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
         const string = new THREE.Mesh(stringGeometry, stringMaterial);
-        string.position.y = 1.5;
+        string.position.y = 2.5;
         tanzakuGroup.add(string);
         
         // Random initial position around bamboo
@@ -492,7 +535,7 @@ class TanabataApp {
         const radius = 2 + Math.random() * 3;
         tanzakuGroup.position.set(
             Math.cos(angle) * radius,
-            3 + Math.random() * 4,
+            -1 + Math.random() * 1,
             Math.sin(angle) * radius
         );
         
@@ -770,10 +813,20 @@ class TanabataApp {
                 
                 // Load tanzaku from server
                 for (const tanzakuData of data.tanzaku) {
-                    await this.createTanzakuFromData(tanzakuData);
+                    const tanzaku = await this.createTanzakuFromData(tanzakuData);
+                    // Only add to scene and list if creation was successful
+                    if (tanzaku) {
+                        this.scene.add(tanzaku);
+                        this.tanzakuList.push(tanzaku);
+                    }
                 }
                 
-                console.log(`Loaded ${data.tanzaku.length} tanzaku from server`);
+                const textTanzaku = data.tanzaku.filter(t => !t.isImageTanzaku);
+                const imageTanzaku = data.tanzaku.filter(t => t.isImageTanzaku);
+                console.log(`Loaded ${data.tanzaku.length} total tanzaku from server:`);
+                console.log(`- Text tanzaku: ${textTanzaku.length}`);
+                console.log(`- Image tanzaku: ${imageTanzaku.length}`);
+                console.log(`- Actually added to scene: ${this.tanzakuList.length}`);
             }
         } catch (error) {
             console.error('Failed to load tanzaku from server:', error);
@@ -825,43 +878,83 @@ class TanabataApp {
 
     async createTanzakuFromData(tanzakuData) {
         return new Promise((resolve) => {
-            // Create canvas from base64 data
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 300;
-                canvas.height = 600;
-                const ctx = canvas.getContext('2d');
-                
-                // Clear with paper texture
-                ctx.fillStyle = '#fffbf0';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw the loaded image
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Create tanzaku
-                const tanzaku = this.createTanzaku(canvas);
-                
-                // Set position and rotation from server data
-                tanzaku.position.set(
-                    tanzakuData.position.x,
-                    tanzakuData.position.y,
-                    tanzakuData.position.z
+            // Check if this is an image tanzaku
+            if (tanzakuData.isImageTanzaku) {
+                // Handle image tanzaku
+                const loader = new THREE.TextureLoader();
+                // Add cache buster to force reload of updated images
+                const imagePath = tanzakuData.imagePath.split('?')[0] + '?v=' + Date.now();
+                loader.load(
+                    imagePath,
+                    (texture) => {
+                        const tanzaku = this.createImageTanzakuFromTexture(texture, tanzakuData.imageIndex);
+                        
+                        // Set position and rotation from server data
+                        tanzaku.position.set(
+                            tanzakuData.position.x,
+                            tanzakuData.position.y,
+                            tanzakuData.position.z
+                        );
+                        tanzaku.rotation.set(
+                            tanzakuData.rotation.x,
+                            tanzakuData.rotation.y,
+                            tanzakuData.rotation.z
+                        );
+                        
+                        // Store server ID and additional metadata
+                        tanzaku.userData.serverId = tanzakuData.id;
+                        tanzaku.userData.isFromServer = true;
+                        tanzaku.userData.isImageTanzaku = true;
+                        tanzaku.userData.imageIndex = tanzakuData.imageIndex;
+                        tanzaku.userData.imagePath = tanzakuData.imagePath;
+                        
+                        resolve(tanzaku);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`Error loading image tanzaku ${tanzakuData.imagePath}:`, error);
+                        resolve(null); // Return null for failed loads
+                    }
                 );
-                tanzaku.rotation.set(
-                    tanzakuData.rotation.x,
-                    tanzakuData.rotation.y,
-                    tanzakuData.rotation.z
-                );
-                
-                // Store server ID
-                tanzaku.userData.serverId = tanzakuData.id;
-                tanzaku.userData.isFromServer = true;
-                
-                resolve(tanzaku);
-            };
-            img.src = tanzakuData.textData;
+            } else {
+                // Handle regular text tanzaku
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 300;
+                    canvas.height = 600;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Clear with paper texture
+                    ctx.fillStyle = '#fffbf0';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw the loaded image
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Create tanzaku
+                    const tanzaku = this.createTanzaku(canvas);
+                    
+                    // Set position and rotation from server data
+                    tanzaku.position.set(
+                        tanzakuData.position.x,
+                        tanzakuData.position.y,
+                        tanzakuData.position.z
+                    );
+                    tanzaku.rotation.set(
+                        tanzakuData.rotation.x,
+                        tanzakuData.rotation.y,
+                        tanzakuData.rotation.z
+                    );
+                    
+                    // Store server ID
+                    tanzaku.userData.serverId = tanzakuData.id;
+                    tanzaku.userData.isFromServer = true;
+                    
+                    resolve(tanzaku);
+                };
+                img.src = tanzakuData.textData;
+            }
         });
     }
 
@@ -881,6 +974,13 @@ class TanabataApp {
                     z: tanzakuGroup.rotation.z
                 }
             };
+
+            // Add image tanzaku specific data if this is an image tanzaku
+            if (tanzakuGroup.userData.isImageTanzaku) {
+                tanzakuData.isImageTanzaku = true;
+                tanzakuData.imageIndex = tanzakuGroup.userData.imageIndex;
+                tanzakuData.imagePath = tanzakuGroup.userData.imagePath;
+            }
             
             const response = await fetch(`${this.apiBaseUrl}/api/tanzaku/${tanzakuGroup.userData.serverId}`, {
                 method: 'PUT',
@@ -892,7 +992,8 @@ class TanabataApp {
             
             const result = await response.json();
             if (result.success) {
-                console.log('Tanzaku position updated on server');
+                const tanzakuType = tanzakuGroup.userData.isImageTanzaku ? 'Image tanzaku' : 'Tanzaku';
+                console.log(`${tanzakuType} position updated on server`);
             } else {
                 console.error('Failed to update tanzaku:', result.error);
             }
@@ -1088,9 +1189,9 @@ class TanabataApp {
             tanzakuGroup.rotation.setFromRotationMatrix(matrix);
             
             // Position the tanzaku so the STRING TOP (attachment point) is at the hit point
-            // The string extends from y=1.0 to y=2.0 (length=1, center at y=1.5)
-            // So the string TOP (attachment point) is at y=2.0 from tanzaku center
-            const stringTopOffset = new THREE.Vector3(0, 2.0, 0); // String top is 2.0 units above tanzaku center
+            // The string extends from y=1.5 to y=3.5 (length=2, center at y=2.5)
+            // So the string TOP (attachment point) is at y=3.5 from tanzaku center
+            const stringTopOffset = new THREE.Vector3(0, 3.5, 0); // String top is 3.5 units above tanzaku center
             stringTopOffset.applyMatrix4(matrix); // Apply rotation to offset
             
             // Position tanzaku so string TOP is at hit point (move away from surface slightly)
@@ -1110,6 +1211,287 @@ class TanabataApp {
         this.camera.updateProjectionMatrix();
         
         this.renderer.setSize(width, height);
+    }
+
+    async loadImageTanzaku() {
+        console.log('Starting to load image tanzaku...');
+        
+        // Check if image tanzaku already exist on server
+        let existingImageTanzaku = [];
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`);
+            const data = await response.json();
+            
+            if (data.success) {
+                existingImageTanzaku = data.tanzaku.filter(t => t.isImageTanzaku);
+                console.log('Found existing image tanzaku:', existingImageTanzaku.length);
+                
+                // If image tanzaku already exist, load them with saved positions
+                if (existingImageTanzaku.length > 0) {
+                    console.log('Loading existing image tanzaku with saved positions');
+                    this.loadExistingImageTanzaku(existingImageTanzaku);
+                    
+                    // Check if we need to create missing image tanzaku
+                    const existingIndices = existingImageTanzaku.map(t => t.imageIndex);
+                    const allIndices = [0, 1, 2]; // We have 3 images
+                    const missingIndices = allIndices.filter(index => !existingIndices.includes(index));
+                    
+                    if (missingIndices.length > 0) {
+                        console.log('Creating missing image tanzaku for indices:', missingIndices);
+                        this.createMissingImageTanzaku(missingIndices);
+                    }
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Error checking existing tanzaku:', error);
+        }
+        
+        // Load the three image files as tanzaku (with cache busting)
+        const timestamp = Date.now();
+        const imageFiles = [
+            `img/blue1.png?v=${timestamp}`,
+            `img/logo_asukoe (2).png?v=${timestamp}`,
+            `img/コフレちゃん（背景透過データ）.png?v=${timestamp}`
+        ];
+
+        console.log('Creating new image tanzaku:', imageFiles);
+        const loader = new THREE.TextureLoader();
+        
+        imageFiles.forEach((imagePath, index) => {
+            loader.load(
+                imagePath,
+                (texture) => {
+                    console.log(`Image ${imagePath} loaded successfully`);
+                    this.createImageTanzaku(texture, index);
+                },
+                (progress) => {
+                    console.log(`Loading ${imagePath}: ${(progress.loaded / progress.total * 100)}%`);
+                },
+                (error) => {
+                    console.error(`Error loading image ${imagePath}:`, error);
+                }
+            );
+        });
+    }
+
+    async loadExistingImageTanzaku(existingImageTanzaku) {
+        const loader = new THREE.TextureLoader();
+        
+        for (const savedTanzaku of existingImageTanzaku) {
+            try {
+                // Load the texture for this image tanzaku
+                const texture = await new Promise((resolve, reject) => {
+                    const timestamp = Date.now();
+                    const imagePath = `${savedTanzaku.imagePath}?v=${timestamp}`;
+                    loader.load(
+                        imagePath,
+                        resolve,
+                        undefined,
+                        reject
+                    );
+                });
+                
+                // Create the tanzaku group with the loaded texture
+                const tanzakuGroup = this.createImageTanzakuFromTexture(texture, savedTanzaku.imageIndex);
+                
+                // Restore the saved position and rotation
+                tanzakuGroup.position.set(
+                    savedTanzaku.position.x,
+                    savedTanzaku.position.y,
+                    savedTanzaku.position.z
+                );
+                tanzakuGroup.rotation.set(
+                    savedTanzaku.rotation.x,
+                    savedTanzaku.rotation.y,
+                    savedTanzaku.rotation.z
+                );
+                
+                // Set the server ID for future updates
+                tanzakuGroup.userData.serverId = savedTanzaku.id;
+                
+                this.scene.add(tanzakuGroup);
+                this.tanzakuList.push(tanzakuGroup);
+                
+                console.log(`Loaded existing image tanzaku ${savedTanzaku.imageIndex} at position:`, savedTanzaku.position);
+                
+            } catch (error) {
+                console.error('Error loading existing image tanzaku:', error);
+            }
+        }
+    }
+
+    createMissingImageTanzaku(missingIndices) {
+        const loader = new THREE.TextureLoader();
+        const imageFiles = [
+            'img/blue1.png',
+            'img/logo_asukoe (2).png',
+            'img/コフレちゃん（背景透過データ）.png'
+        ];
+        
+        missingIndices.forEach(index => {
+            if (index < imageFiles.length) {
+                const timestamp = Date.now();
+                const imagePath = `${imageFiles[index]}?v=${timestamp}`;
+                
+                loader.load(
+                    imagePath,
+                    (texture) => {
+                        console.log(`Missing image ${imagePath} loaded successfully`);
+                        this.createImageTanzaku(texture, index);
+                    },
+                    (progress) => {
+                        console.log(`Loading missing ${imagePath}: ${(progress.loaded / progress.total * 100)}%`);
+                    },
+                    (error) => {
+                        console.error(`Error loading missing image ${imagePath}:`, error);
+                    }
+                );
+            }
+        });
+    }
+
+    createImageTanzaku(texture, index) {
+        const tanzakuGroup = this.createImageTanzakuFromTexture(texture, index);
+        
+        // Position image tanzaku around the scene with specific positions
+        const positions = [
+            { x: 5.934956815092061, y: 5.9869101424380045, z: 4.613929204689042 }, // imageIndex 0
+            { x: -5.3257223989631655, y: 9.931149710454356, z: 14.168334512234656 }, // imageIndex 1
+            { x: -6.1904721782677035, y: 4.358002440325047, z: 3.351045455481746 } // imageIndex 2 (コフレちゃん)
+        ];
+        
+        const rotations = [
+            { x: 0, y: 1.0484629410666864, z: 0 }, // imageIndex 0
+            { x: 0, y: -0.27998882959408394, z: 0 }, // imageIndex 1
+            { x: 0, y: -0.26234971708790594, z: 0 } // imageIndex 2 (コフレちゃん)
+        ];
+        
+        if (index < positions.length) {
+            const pos = positions[index];
+            const rot = rotations[index];
+            tanzakuGroup.position.set(pos.x, pos.y, pos.z);
+            tanzakuGroup.rotation.set(rot.x, rot.y, rot.z);
+        } else {
+            // Fallback to default positioning for any additional images
+            const angles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25];
+            const radii = [4, 5, 6];
+            const heights = [-0.5, 0, 0.5];
+            
+            const angle = angles[index % angles.length];
+            const radius = radii[index % radii.length];
+            const height = heights[index % heights.length];
+            
+            tanzakuGroup.position.set(
+                Math.cos(angle) * radius,
+                height,
+                Math.sin(angle) * radius
+            );
+            tanzakuGroup.rotation.y = angle + Math.PI;
+        }
+        
+        this.scene.add(tanzakuGroup);
+        this.tanzakuList.push(tanzakuGroup);
+        
+        // Save image tanzaku to server
+        this.saveImageTanzakuToServer(tanzakuGroup);
+        
+        console.log(`Image tanzaku ${index} created and added to scene`);
+    }
+
+    createImageTanzakuFromTexture(texture, index) {
+        const tanzakuGroup = new THREE.Group();
+        
+        // Create tanzaku base (same as regular tanzaku)
+        const geometry = new THREE.BoxGeometry(1.5, 3, 0.05);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0xffffff, // White base for image display
+            side: THREE.DoubleSide
+        });
+        const tanzaku = new THREE.Mesh(geometry, material);
+        tanzaku.castShadow = true;
+        tanzaku.receiveShadow = true;
+        
+        // Create image plane
+        const imageMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        const imagePlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.35, 2.7),
+            imageMaterial
+        );
+        imagePlane.position.z = 0.035; // Slightly in front of tanzaku
+        
+        tanzakuGroup.add(tanzaku);
+        tanzakuGroup.add(imagePlane);
+        
+        // Add string (same as regular tanzaku)
+        const stringGeometry = new THREE.CylinderGeometry(0.01, 0.01, 2);
+        const stringMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+        const string = new THREE.Mesh(stringGeometry, stringMaterial);
+        string.position.y = 2.5;
+        tanzakuGroup.add(string);
+        
+        // Set userData
+        tanzakuGroup.userData = { 
+            movable: true,
+            isImageTanzaku: true,
+            imageIndex: index,
+            imagePath: this.getImagePathByIndex(index) // Store the image path for reconstruction
+        };
+        
+        return tanzakuGroup;
+    }
+
+    getImagePathByIndex(index) {
+        const imageFiles = [
+            'img/blue1.png',
+            'img/logo_asukoe (2).png',
+            'img/コフレちゃん（背景透過データ）.png'
+        ];
+        return imageFiles[index] || imageFiles[0]; // Fallback to first image
+    }
+
+    async saveImageTanzakuToServer(tanzakuGroup) {
+        try {
+            const tanzakuData = {
+                position: {
+                    x: tanzakuGroup.position.x,
+                    y: tanzakuGroup.position.y,
+                    z: tanzakuGroup.position.z
+                },
+                rotation: {
+                    x: tanzakuGroup.rotation.x,
+                    y: tanzakuGroup.rotation.y,
+                    z: tanzakuGroup.rotation.z
+                },
+                textData: 'IMAGE_TANZAKU', // Dummy text data for image tanzaku
+                isImageTanzaku: true,
+                imageIndex: tanzakuGroup.userData.imageIndex,
+                imagePath: tanzakuGroup.userData.imagePath.split('?')[0], // Remove query params when saving
+                timestamp: new Date().toISOString()
+            };
+            
+            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tanzakuData)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                tanzakuGroup.userData.serverId = result.tanzaku.id;
+                console.log('Image tanzaku saved to server:', result.tanzaku.id);
+            } else {
+                console.error('Failed to save image tanzaku:', result.error);
+            }
+        } catch (error) {
+            console.error('Error saving image tanzaku to server:', error);
+        }
     }
 
     animate() {

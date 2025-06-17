@@ -75,6 +75,13 @@ app.post('/api/tanzaku', async (req, res) => {
             timestamp: timestamp || new Date().toISOString(),
             author: req.body.author || 'Anonymous'
         };
+
+        // Add image tanzaku specific fields if present
+        if (req.body.isImageTanzaku) {
+            newTanzaku.isImageTanzaku = req.body.isImageTanzaku;
+            newTanzaku.imageIndex = req.body.imageIndex;
+            newTanzaku.imagePath = req.body.imagePath;
+        }
         
         tanzakuList.push(newTanzaku);
         
@@ -110,6 +117,13 @@ app.put('/api/tanzaku/:id', async (req, res) => {
         tanzakuList[tanzakuIndex].position = position;
         tanzakuList[tanzakuIndex].rotation = rotation;
         tanzakuList[tanzakuIndex].lastModified = new Date().toISOString();
+        
+        // Update image tanzaku specific fields if present
+        if (req.body.isImageTanzaku) {
+            tanzakuList[tanzakuIndex].isImageTanzaku = req.body.isImageTanzaku;
+            tanzakuList[tanzakuIndex].imageIndex = req.body.imageIndex;
+            tanzakuList[tanzakuIndex].imagePath = req.body.imagePath;
+        }
         
         const saved = await saveTanzaku(tanzakuList);
         if (saved) {
