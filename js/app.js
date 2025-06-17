@@ -32,6 +32,15 @@ class TanabataApp {
         this.apiBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8005';
         this.loadingTanzaku = false;
         
+        // Loading tracking
+        this.loadingStates = {
+            bambooModel: false,
+            characterModel: false,
+            imageTanzaku: false,
+            existingTanzaku: false
+        };
+        this.allAssetsLoaded = false;
+        
         this.init();
     }
 
@@ -48,6 +57,39 @@ class TanabataApp {
         
         // Show entry modal on load
         document.getElementById('qr-entry').classList.remove('hidden');
+    }
+
+    checkAllAssetsLoaded() {
+        const allLoaded = Object.values(this.loadingStates).every(state => state === true);
+        
+        if (allLoaded && !this.allAssetsLoaded) {
+            this.allAssetsLoaded = true;
+            
+            // Hide loading indicator and enable enter button
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const enterBtn = document.getElementById('enter-btn');
+            const loadingText = document.getElementById('loading-text');
+            
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+            if (enterBtn) enterBtn.disabled = false;
+            if (loadingText) loadingText.textContent = '読み込み完了！';
+            
+            console.log('All assets loaded successfully!');
+        }
+    }
+
+    updateLoadingState(asset, loaded = true) {
+        this.loadingStates[asset] = loaded;
+        const loadingText = document.getElementById('loading-text');
+        
+        const loadedCount = Object.values(this.loadingStates).filter(state => state === true).length;
+        const totalAssets = Object.keys(this.loadingStates).length;
+        
+        if (loadingText) {
+            loadingText.textContent = `読み込み中... (${loadedCount}/${totalAssets})`;
+        }
+        
+        this.checkAllAssetsLoaded();
     }
 
     setupScene() {
@@ -341,6 +383,7 @@ class TanabataApp {
                 });
                 
                 this.scene.add(this.bambooModel);
+                this.updateLoadingState('bambooModel');
             },
             (xhr) => {
                 console.log((xhr.loaded / xhr.total * 100) + '% loaded');
@@ -349,6 +392,7 @@ class TanabataApp {
                 console.error('Error loading bamboo model:', error);
                 // Fallback to procedural bamboo
                 this.createImprovedBamboo();
+                this.updateLoadingState('bambooModel');
             }
         );
         
@@ -395,12 +439,14 @@ class TanabataApp {
                 
                 this.scene.add(this.characterModel);
                 console.log('Character model loaded and added to scene at position:', this.characterModel.position);
+                this.updateLoadingState('characterModel');
             },
             (xhr) => {
                 console.log('Character loading: ' + (xhr.loaded / xhr.total * 100) + '% loaded');
             },
             (error) => {
                 console.error('Error loading character model:', error);
+                this.updateLoadingState('characterModel');
             }
         );
     }
@@ -832,6 +878,7 @@ class TanabataApp {
             console.error('Failed to load tanzaku from server:', error);
         } finally {
             this.loadingTanzaku = false;
+            this.updateLoadingState('existingTanzaku');
         }
     }
 
@@ -1240,11 +1287,16 @@ class TanabataApp {
                         console.log('Creating missing image tanzaku for indices:', missingIndices);
                         this.createMissingImageTanzaku(missingIndices);
                     }
+                    
+                    // Mark image tanzaku as loaded since they already exist
+                    this.updateLoadingState('imageTanzaku');
                     return;
                 }
             }
         } catch (error) {
             console.error('Error checking existing tanzaku:', error);
+            // Mark as loaded even on error to not block the loading screen
+            this.updateLoadingState('imageTanzaku');
         }
         
         // Load the three image files as tanzaku (with cache busting)
@@ -1257,6 +1309,8 @@ class TanabataApp {
 
         console.log('Creating new image tanzaku:', imageFiles);
         const loader = new THREE.TextureLoader();
+        let imagesToLoad = imageFiles.length;
+        let imagesLoaded = 0;
         
         imageFiles.forEach((imagePath, index) => {
             loader.load(
@@ -1264,12 +1318,24 @@ class TanabataApp {
                 (texture) => {
                     console.log(`Image ${imagePath} loaded successfully`);
                     this.createImageTanzaku(texture, index);
+                    
+                    // Track loading progress
+                    imagesLoaded++;
+                    if (imagesLoaded === imagesToLoad) {
+                        this.updateLoadingState('imageTanzaku');
+                    }
                 },
                 (progress) => {
                     console.log(`Loading ${imagePath}: ${(progress.loaded / progress.total * 100)}%`);
                 },
                 (error) => {
                     console.error(`Error loading image ${imagePath}:`, error);
+                    
+                    // Track loading progress even on error
+                    imagesLoaded++;
+                    if (imagesLoaded === imagesToLoad) {
+                        this.updateLoadingState('imageTanzaku');
+                    }
                 }
             );
         });
