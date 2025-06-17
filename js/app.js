@@ -35,7 +35,6 @@ class TanabataApp {
         // Loading tracking
         this.loadingStates = {
             bambooModel: false,
-            characterModel: false,
             imageTanzaku: false,
             existingTanzaku: false
         };
@@ -49,7 +48,6 @@ class TanabataApp {
         this.setupLights();
         this.setupControls();
         this.loadBambooModel();
-        this.loadCharacterModel();
         this.setupEventListeners();
         this.loadImageTanzaku();
         this.loadExistingTanzaku();
@@ -90,6 +88,16 @@ class TanabataApp {
         }
         
         this.checkAllAssetsLoaded();
+    }
+
+    // Helper function to create fetch with timeout
+    fetchWithTimeout(url, options = {}, timeout = 10000) {
+        return Promise.race([
+            fetch(url, options),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timeout')), timeout)
+            )
+        ]);
     }
 
     setupScene() {
@@ -408,48 +416,6 @@ class TanabataApp {
         this.scene.add(ground);
     }
 
-    loadCharacterModel() {
-        // Load the GLB character model
-        const loader = new THREE.GLTFLoader();
-        loader.load('../model/kofre.glb', 
-            (gltf) => {
-                this.characterModel = gltf.scene;
-                
-                // Debug: Check model size
-                const box = new THREE.Box3().setFromObject(this.characterModel);
-                const size = box.getSize(new THREE.Vector3());
-                console.log('Character model size:', size);
-                console.log('Character model position before scaling:', this.characterModel.position);
-                
-                // Scale to human size (make it bigger if too small)
-                this.characterModel.scale.set(5, 5, 5);
-                
-                // Position character closer to camera and more visible
-                this.characterModel.position.set(10, 0, 15); // Closer to camera
-                this.characterModel.rotation.y = Math.PI * 0.3; // Face towards camera
-                
-                // Enable shadows for all meshes in the character model
-                this.characterModel.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        console.log('Found mesh in character:', child.name);
-                    }
-                });
-                
-                this.scene.add(this.characterModel);
-                console.log('Character model loaded and added to scene at position:', this.characterModel.position);
-                this.updateLoadingState('characterModel');
-            },
-            (xhr) => {
-                console.log('Character loading: ' + (xhr.loaded / xhr.total * 100) + '% loaded');
-            },
-            (error) => {
-                console.error('Error loading character model:', error);
-                this.updateLoadingState('characterModel');
-            }
-        );
-    }
     
     createImprovedBamboo() {
         // Create a more detailed bamboo model
@@ -847,7 +813,7 @@ class TanabataApp {
         this.loadingTanzaku = true;
         
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`);
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {}, 5000);
             const data = await response.json();
             
             if (data.success) {
@@ -903,13 +869,13 @@ class TanabataApp {
                 timestamp: new Date().toISOString()
             };
             
-            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`, {
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(tanzakuData)
-            });
+            }, 5000);
             
             const result = await response.json();
             if (result.success) {
@@ -1029,13 +995,13 @@ class TanabataApp {
                 tanzakuData.imagePath = tanzakuGroup.userData.imagePath;
             }
             
-            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku/${tanzakuGroup.userData.serverId}`, {
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/${tanzakuGroup.userData.serverId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(tanzakuData)
-            });
+            }, 5000);
             
             const result = await response.json();
             if (result.success) {
@@ -1266,7 +1232,7 @@ class TanabataApp {
         // Check if image tanzaku already exist on server
         let existingImageTanzaku = [];
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`);
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {}, 5000);
             const data = await response.json();
             
             if (data.success) {
@@ -1540,13 +1506,13 @@ class TanabataApp {
                 timestamp: new Date().toISOString()
             };
             
-            const response = await fetch(`${this.apiBaseUrl}/api/tanzaku`, {
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(tanzakuData)
-            });
+            }, 5000);
             
             const result = await response.json();
             if (result.success) {
