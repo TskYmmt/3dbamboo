@@ -29,7 +29,8 @@ class TanabataApp {
         this.joystickOffset = { x: 0, y: 0 };
         
         // API settings
-        this.apiBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8005';
+        // Use same origin for production deployment (render.com)
+        this.apiBaseUrl = window.location.origin;
         this.loadingTanzaku = false;
         
         // Loading tracking
