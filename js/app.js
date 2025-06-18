@@ -34,8 +34,11 @@ class TanabataApp {
         this.apiBaseUrl = window.location.origin;
         
         // Check if we're running on Amplify (Lambda backend)
-        if (window.amplifyConfig && window.amplifyConfig.API) {
+        if (window.amplifyConfig && window.amplifyConfig.API && window.amplifyConfig.API.endpoints.length > 0) {
             this.apiBaseUrl = window.amplifyConfig.API.endpoints[0].endpoint;
+            console.log('Using Amplify API endpoint:', this.apiBaseUrl);
+        } else {
+            console.log('Using origin API endpoint:', this.apiBaseUrl);
         }
         this.loadingTanzaku = false;
         
