@@ -1,0 +1,12 @@
+{
+  "paths": {
+    "/api/tanzaku": {
+      "name": "/api/tanzaku",
+      "lambdaFunction": "tanzakuAPI"
+    },
+    "/api/tanzaku/{proxy+}": {
+      "name": "/api/tanzaku/{proxy+}",
+      "lambdaFunction": "tanzakuAPI"
+    }
+  }
+}

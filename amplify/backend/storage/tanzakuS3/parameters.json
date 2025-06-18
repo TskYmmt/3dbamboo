@@ -1,0 +1,15 @@
+{
+  "bucketName": "tanabata3d-tanzaku-data",
+  "authPolicyName": "s3_amplify_tanabata",
+  "unauthPolicyName": "s3_amplify_tanabata",
+  "authRoleName": "tanabata3d-auth-role",
+  "unauthRoleName": "tanabata3d-unauth-role",
+  "s3PermissionsAuthenticatedPublic": "s3:GetObject",
+  "s3PermissionsAuthenticatedUploads": "s3:PutObject",
+  "s3PermissionsAuthenticatedProtected": "s3:GetObject",
+  "s3PermissionsAuthenticatedPrivate": "s3:GetObject,s3:PutObject",
+  "AuthenticatedAllowList": "ALLOW",
+  "s3PermissionsGuestPublic": "s3:GetObject",
+  "s3PermissionsGuestUploads": "DISALLOW",
+  "GuestAllowList": "ALLOW"
+}

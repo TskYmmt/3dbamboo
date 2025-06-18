@@ -1,0 +1,9 @@
+{
+  "name": "tanzakuapi",
+  "version": "1.0.0",
+  "description": "Lambda function for Tanabata 3D API",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1692.0"
+  }
+}

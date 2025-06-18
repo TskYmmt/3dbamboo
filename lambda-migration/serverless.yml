@@ -1,0 +1,46 @@
+service: tanabata-3d-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-northeast-1
+  environment:
+    TANZAKU_BUCKET: ${self:service}-tanzaku-data
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:PutObject
+      Resource: "arn:aws:s3:::${self:provider.environment.TANZAKU_BUCKET}/*"
+
+functions:
+  getTanzaku:
+    handler: handler.getTanzaku
+    events:
+      - http:
+          path: api/tanzaku
+          method: get
+          cors: true
+  
+  createTanzaku:
+    handler: handler.createTanzaku
+    events:
+      - http:
+          path: api/tanzaku
+          method: post
+          cors: true
+  
+  updateTanzaku:
+    handler: handler.updateTanzaku
+    events:
+      - http:
+          path: api/tanzaku/{id}
+          method: put
+          cors: true
+
+resources:
+  Resources:
+    TanzakuBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.TANZAKU_BUCKET}

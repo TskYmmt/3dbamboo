@@ -1,4 +1,10 @@
 version: 1
+backend:
+  phases:
+    preBuild:
+      commands:
+        - '# Execute Amplify CLI with the helper script'
+        - amplifyPush --simple
 frontend:
   phases:
     preBuild:
@@ -11,18 +17,12 @@ frontend:
     baseDirectory: /
     files:
       - '**/*'
+    excludeFiles:
+      - 'amplify/**/*'
+      - 'server.js'
+      - 'server.py'
+      - 'tanzaku_data.json'
+      - 'node_modules/**/*'
   cache:
     paths:
       - node_modules/**/*
-backend:
-  phases:
-    preBuild:
-      commands:
-        - npm install
-    build:
-      commands:
-        - echo "Backend build completed"
-  artifacts:
-    baseDirectory: /
-    files:
-      - '**/*'

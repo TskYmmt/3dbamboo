@@ -30,7 +30,13 @@ class TanabataApp {
         
         // API settings
         // Use same origin for production deployment (render.com)
+        // For AWS Amplify, the API Gateway URL will be injected by amplify
         this.apiBaseUrl = window.location.origin;
+        
+        // Check if we're running on Amplify (Lambda backend)
+        if (window.amplifyConfig && window.amplifyConfig.API) {
+            this.apiBaseUrl = window.amplifyConfig.API.endpoints[0].endpoint;
+        }
         this.loadingTanzaku = false;
         
         // Loading tracking

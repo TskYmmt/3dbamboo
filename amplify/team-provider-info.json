@@ -1,0 +1,22 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-tanabata3d-dev-authRole",
+      "UnauthRoleArn": "arn:aws:iam::AWS_ACCOUNT_ID:role/amplify-tanabata3d-dev-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::AWS_ACCOUNT_ID:role/amplify-tanabata3d-dev-authRole",
+      "Region": "ap-northeast-1",
+      "DeploymentBucketName": "amplify-tanabata3d-dev-deployment",
+      "UnauthRoleName": "amplify-tanabata3d-dev-unauthRole",
+      "StackName": "amplify-tanabata3d-dev",
+      "StackId": "WILL_BE_GENERATED"
+    },
+    "categories": {
+      "function": {
+        "tanzakuAPI": {
+          "deploymentBucketName": "amplify-tanabata3d-dev-deployment",
+          "s3Key": "amplify-builds/tanzakuAPI.zip"
+        }
+      }
+    }
+  }
+}
