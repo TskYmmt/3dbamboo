@@ -12,6 +12,11 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Large limit for canvas data
 app.use(express.static(__dirname)); // Serve static files
 
+// Health check endpoint for AWS
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Initialize data file if it doesn't exist
 async function initDataFile() {
     try {
