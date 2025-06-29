@@ -142,6 +142,24 @@ app.put('/api/tanzaku/:id', async (req, res) => {
     }
 });
 
+// Clear all tanzaku (for developer mode) - Must be before /:id route
+app.delete('/api/tanzaku/clear', async (req, res) => {
+    try {
+        console.log('Clearing all tanzaku...');
+        const saved = await saveTanzaku([]);
+        if (saved) {
+            console.log('All tanzaku cleared successfully');
+            res.json({ success: true, message: 'All tanzaku cleared' });
+        } else {
+            console.error('Failed to save empty tanzaku array');
+            res.status(500).json({ success: false, error: 'Failed to clear tanzaku' });
+        }
+    } catch (error) {
+        console.error('Error clearing tanzaku:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 // Delete tanzaku (optional)
 app.delete('/api/tanzaku/:id', async (req, res) => {
     try {

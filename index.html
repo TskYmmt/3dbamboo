@@ -47,6 +47,21 @@
                 <button id="enter-btn" class="primary-btn large-btn" disabled>入場する</button>
             </div>
         </div>
+
+        <div id="developer-mode" class="modal hidden">
+            <div class="modal-content">
+                <h2>デベロッパーモード</h2>
+                <p>短冊データの管理ツール</p>
+                <div class="button-group">
+                    <button id="export-tanzaku-btn" class="primary-btn">短冊データをエクスポート</button>
+                    <button id="import-tanzaku-btn" class="secondary-btn">短冊データをインポート</button>
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                    <button id="clear-all-tanzaku-btn" class="danger-btn">全ての短冊を削除</button>
+                    <button id="close-dev-mode-btn" class="secondary-btn">閉じる</button>
+                </div>
+                <div id="dev-status" class="status-message"></div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

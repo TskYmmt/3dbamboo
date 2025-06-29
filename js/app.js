@@ -54,6 +54,9 @@ class TanabataApp {
         this.loadExistingTanzaku();
         this.animate();
         
+        // Expose developer commands to console
+        this.exposeDevModeToConsole();
+        
         // Show entry modal on load
         document.getElementById('qr-entry').classList.remove('hidden');
     }
@@ -609,6 +612,9 @@ class TanabataApp {
         // Setup drawing canvas
         this.setupDrawingCanvas();
         this.setupCanvasZoom();
+        
+        // Developer mode event listeners
+        this.setupDeveloperModeListeners();
     }
 
     setupDrawingCanvas() {
@@ -1053,6 +1059,13 @@ class TanabataApp {
             case 'KeyF':
                 // F key to select/interact with tanzaku
                 this.selectTanzakuInCenter();
+                break;
+            case 'KeyD':
+                // Ctrl+Shift+D to toggle developer mode
+                if (e.ctrlKey && e.shiftKey) {
+                    e.preventDefault();
+                    this.toggleDeveloperMode();
+                }
                 break;
         }
     }
@@ -1540,6 +1553,232 @@ class TanabataApp {
         });
         
         this.renderer.render(this.scene, this.camera);
+    }
+    
+    // Developer Mode Functions
+    toggleDeveloperMode() {
+        const devModal = document.getElementById('developer-mode');
+        devModal.classList.toggle('hidden');
+        console.log('Developer mode toggled');
+    }
+    
+    // Expose developer mode functions to console
+    exposeDevModeToConsole() {
+        // Make app instance globally accessible
+        window.tanabataApp = this;
+        
+        // Define console commands
+        window.devMode = () => {
+            this.toggleDeveloperMode();
+        };
+        
+        window.exportTanzaku = () => {
+            this.exportTanzakuData();
+        };
+        
+        window.clearAllTanzaku = () => {
+            this.clearAllTanzaku();
+        };
+        
+        window.checkServerData = async () => {
+            try {
+                const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+                const result = await response.json();
+                console.log('Server tanzaku data:', result);
+                return result;
+            } catch (error) {
+                console.error('Failed to check server data:', error);
+            }
+        };
+        
+        console.log('%c=== Tanabata Developer Commands ===', 'color: #667eea; font-weight: bold; font-size: 14px;');
+        console.log('%cdevMode()        - デベロッパーモードを開く/閉じる', 'color: #333;');
+        console.log('%cexportTanzaku()  - 短冊データをエクスポート', 'color: #333;');
+        console.log('%cclearAllTanzaku() - 全ての短冊を削除', 'color: #333;');
+        console.log('%ccheckServerData() - サーバーのデータを確認', 'color: #333;');
+        console.log('%c=====================================', 'color: #667eea;');
+    }
+    
+    setupDeveloperModeListeners() {
+        // Export tanzaku data
+        document.getElementById('export-tanzaku-btn').addEventListener('click', () => {
+            this.exportTanzakuData();
+        });
+        
+        // Import tanzaku data
+        document.getElementById('import-tanzaku-btn').addEventListener('click', () => {
+            document.getElementById('import-file-input').click();
+        });
+        
+        document.getElementById('import-file-input').addEventListener('change', (e) => {
+            this.importTanzakuData(e);
+        });
+        
+        // Clear all tanzaku
+        document.getElementById('clear-all-tanzaku-btn').addEventListener('click', () => {
+            this.clearAllTanzaku();
+        });
+        
+        // Close developer mode
+        document.getElementById('close-dev-mode-btn').addEventListener('click', () => {
+            document.getElementById('developer-mode').classList.add('hidden');
+        });
+    }
+    
+    async exportTanzakuData() {
+        const statusEl = document.getElementById('dev-status');
+        statusEl.textContent = 'エクスポート中...';
+        statusEl.className = 'status-message';
+        
+        try {
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+            const result = await response.json();
+            
+            if (result.success) {
+                const exportData = {
+                    exportDate: new Date().toISOString(),
+                    tanzakuCount: result.tanzaku.length,
+                    tanzaku: result.tanzaku
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `tanzaku_export_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                statusEl.textContent = `${result.tanzaku.length}件の短冊をエクスポートしました`;
+                statusEl.className = 'status-message success';
+            } else {
+                throw new Error(result.error || 'エクスポートに失敗しました');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            statusEl.textContent = `エラー: ${error.message}`;
+            statusEl.className = 'status-message error';
+        }
+        
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'status-message';
+        }, 5000);
+    }
+    
+    async importTanzakuData(event) {
+        const statusEl = document.getElementById('dev-status');
+        const file = event.target.files[0];
+        
+        if (!file) return;
+        
+        statusEl.textContent = 'インポート中...';
+        statusEl.className = 'status-message';
+        
+        try {
+            const fileText = await file.text();
+            const importData = JSON.parse(fileText);
+            
+            // Validate import data structure
+            if (!importData.tanzaku || !Array.isArray(importData.tanzaku)) {
+                throw new Error('無効なファイル形式です');
+            }
+            
+            // Clear existing tanzaku first
+            await this.clearAllTanzaku(false); // Don't show status message
+            
+            // Import each tanzaku
+            let importCount = 0;
+            for (const tanzakuData of importData.tanzaku) {
+                try {
+                    const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(tanzakuData)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        importCount++;
+                        // Create 3D tanzaku object
+                        this.createTanzakuFromData(result.tanzaku);
+                    }
+                } catch (error) {
+                    console.error('Failed to import tanzaku:', error);
+                }
+            }
+            
+            statusEl.textContent = `${importCount}件の短冊をインポートしました`;
+            statusEl.className = 'status-message success';
+            
+        } catch (error) {
+            console.error('Import error:', error);
+            statusEl.textContent = `エラー: ${error.message}`;
+            statusEl.className = 'status-message error';
+        }
+        
+        // Reset file input
+        event.target.value = '';
+        
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'status-message';
+        }, 5000);
+    }
+    
+    async clearAllTanzaku(showStatus = true) {
+        const statusEl = document.getElementById('dev-status');
+        
+        if (showStatus) {
+            const confirm = window.confirm('全ての短冊を削除しますか？この操作は取り消せません。');
+            if (!confirm) return;
+            
+            statusEl.textContent = '削除中...';
+            statusEl.className = 'status-message';
+        }
+        
+        try {
+            // Clear server data first
+            const response = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/clear`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'サーバーでの削除に失敗しました');
+            }
+            
+            // Remove all tanzaku from 3D scene only after server deletion succeeds
+            this.tanzakuList.forEach(tanzaku => {
+                this.scene.remove(tanzaku);
+            });
+            this.tanzakuList = [];
+            
+            console.log('All tanzaku cleared from server and scene');
+            
+            if (showStatus) {
+                statusEl.textContent = '全ての短冊を削除しました';
+                statusEl.className = 'status-message success';
+                
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'status-message';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Clear error:', error);
+            if (showStatus) {
+                statusEl.textContent = `エラー: ${error.message}`;
+                statusEl.className = 'status-message error';
+                
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'status-message';
+                }, 5000);
+            }
+        }
     }
 }
 

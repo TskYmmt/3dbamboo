@@ -193,6 +193,52 @@ body {
     background: #d0d0d0;
 }
 
+.danger-btn {
+    padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
+    border: none;
+    border-radius: 25px;
+    font-size: clamp(12px, 3vw, 16px);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+    max-width: 120px;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+}
+
+.danger-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
+.status-message {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    text-align: center;
+    margin: 10px 0;
+    transition: opacity 0.3s ease;
+    min-height: 20px;
+}
+
+.status-message.success {
+    background: rgba(46, 204, 113, 0.9);
+}
+
+.status-message.error {
+    background: rgba(231, 76, 60, 0.9);
+}
+
+.status-message.warning {
+    background: rgba(241, 196, 15, 0.9);
+    color: #333;
+}
+
 .large-btn {
     padding: 18px 36px;
     font-size: 20px;
