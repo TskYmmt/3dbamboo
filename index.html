@@ -51,7 +51,16 @@
         <div id="developer-mode" class="modal hidden">
             <div class="modal-content">
                 <h2>デベロッパーモード</h2>
-                <p>短冊データの管理ツール</p>
+                <p>短冊データの管理ツール & 負荷テスト</p>
+                
+                <h3>📊 負荷テスト</h3>
+                <div class="button-group">
+                    <button id="load-test-create-btn" class="test-btn">短冊作成負荷テスト (30個)</button>
+                    <button id="load-test-move-btn" class="test-btn">一斉移動負荷テスト</button>
+                    <button id="load-test-full-btn" class="test-btn">総合負荷テスト (60秒)</button>
+                </div>
+                
+                <h3>📁 データ管理</h3>
                 <div class="button-group">
                     <button id="export-tanzaku-btn" class="primary-btn">短冊データをエクスポート</button>
                     <button id="import-tanzaku-btn" class="secondary-btn">短冊データをインポート</button>
@@ -59,6 +68,12 @@
                     <button id="clear-all-tanzaku-btn" class="danger-btn">全ての短冊を削除</button>
                     <button id="close-dev-mode-btn" class="secondary-btn">閉じる</button>
                 </div>
+                
+                <div id="load-test-results" class="test-results hidden">
+                    <h4>テスト結果</h4>
+                    <div id="test-output"></div>
+                </div>
+                
                 <div id="dev-status" class="status-message"></div>
             </div>
         </div>

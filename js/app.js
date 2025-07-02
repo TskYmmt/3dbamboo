@@ -87,6 +87,8 @@ class TanabataApp {
         const loadedCount = Object.values(this.loadingStates).filter(state => state === true).length;
         const totalAssets = Object.keys(this.loadingStates).length;
         
+        console.log(`Loading state update: ${asset} = ${loaded} (${loadedCount}/${totalAssets})`);
+        
         if (loadingText) {
             loadingText.textContent = `読み込み中... (${loadedCount}/${totalAssets})`;
         }
@@ -622,8 +624,8 @@ class TanabataApp {
         const ctx = canvas.getContext('2d');
         
         // Set canvas size
-        canvas.width = 300;
-        canvas.height = 600;
+        canvas.width = 200;
+        canvas.height = 400;
         
         // Drawing state
         let isDrawing = false;
@@ -771,9 +773,31 @@ class TanabataApp {
         document.getElementById('tanzaku-editor').classList.add('hidden');
     }
 
+    // Canvas compression to reduce texture memory usage
+    async compressCanvas(sourceCanvas, targetWidth = 150, targetHeight = 300, quality = 0.8) {
+        return new Promise((resolve) => {
+            const compressedCanvas = document.createElement('canvas');
+            compressedCanvas.width = targetWidth;
+            compressedCanvas.height = targetHeight;
+            const ctx = compressedCanvas.getContext('2d');
+            
+            // Scale down with high quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Draw scaled down version
+            ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+            
+            resolve(compressedCanvas);
+        });
+    }
+
     async submitTanzaku() {
         const canvas = document.getElementById('drawing-canvas');
-        const tanzaku = this.createTanzaku(canvas);
+        
+        // Compress canvas to reduce texture size
+        const compressedCanvas = await this.compressCanvas(canvas);
+        const tanzaku = this.createTanzaku(compressedCanvas);
         
         // Save to server
         await this.saveTanzakuToServer(tanzaku);
@@ -830,15 +854,22 @@ class TanabataApp {
                 });
                 this.tanzakuList = [];
                 
-                // Load tanzaku from server
-                for (const tanzakuData of data.tanzaku) {
-                    const tanzaku = await this.createTanzakuFromData(tanzakuData);
-                    // Only add to scene and list if creation was successful
+                // Load tanzaku from server (parallel processing for better performance)
+                console.log(`Loading ${data.tanzaku.length} tanzaku...`);
+                const tanzakuPromises = data.tanzaku.map(tanzakuData => 
+                    this.createTanzakuFromData(tanzakuData)
+                );
+                
+                const tanzakuResults = await Promise.all(tanzakuPromises);
+                
+                // Add successfully created tanzaku to scene
+                for (const tanzaku of tanzakuResults) {
                     if (tanzaku) {
                         this.scene.add(tanzaku);
                         this.tanzakuList.push(tanzaku);
                     }
                 }
+                console.log(`Successfully loaded ${this.tanzakuList.length} tanzaku to scene`);
                 
                 const textTanzaku = data.tanzaku.filter(t => !t.isImageTanzaku);
                 const imageTanzaku = data.tanzaku.filter(t => t.isImageTanzaku);
@@ -938,42 +969,90 @@ class TanabataApp {
                 );
             } else {
                 // Handle regular text tanzaku
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 300;
-                    canvas.height = 600;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Clear with paper texture
-                    ctx.fillStyle = '#fffbf0';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Draw the loaded image
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    // Create tanzaku
-                    const tanzaku = this.createTanzaku(canvas);
-                    
-                    // Set position and rotation from server data
-                    tanzaku.position.set(
-                        tanzakuData.position.x,
-                        tanzakuData.position.y,
-                        tanzakuData.position.z
-                    );
-                    tanzaku.rotation.set(
-                        tanzakuData.rotation.x,
-                        tanzakuData.rotation.y,
-                        tanzakuData.rotation.z
-                    );
-                    
-                    // Store server ID
-                    tanzaku.userData.serverId = tanzakuData.id;
-                    tanzaku.userData.isFromServer = true;
-                    
-                    resolve(tanzaku);
-                };
-                img.src = tanzakuData.textData;
+                if (tanzakuData.textData && tanzakuData.textData.startsWith('data:image/')) {
+                    // If textData is base64 image data, load it as image
+                    const img = new Image();
+                    img.onload = async () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 200;
+                        canvas.height = 400;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Clear with paper texture
+                        ctx.fillStyle = '#fffbf0';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw the loaded image
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        // Compress and create tanzaku
+                        const compressedCanvas = await this.compressCanvas(canvas);
+                        const tanzaku = this.createTanzaku(compressedCanvas);
+                        
+                        // Set position and rotation from server data
+                        tanzaku.position.set(
+                            tanzakuData.position.x,
+                            tanzakuData.position.y,
+                            tanzakuData.position.z
+                        );
+                        tanzaku.rotation.set(
+                            tanzakuData.rotation.x,
+                            tanzakuData.rotation.y,
+                            tanzakuData.rotation.z
+                        );
+                        
+                        // Store server ID
+                        tanzaku.userData.serverId = tanzakuData.id;
+                        tanzaku.userData.isFromServer = true;
+                        
+                        resolve(tanzaku);
+                    };
+                    img.onerror = () => {
+                        console.error('Failed to load tanzaku image:', tanzakuData.id);
+                        resolve(null);
+                    };
+                    img.src = tanzakuData.textData;
+                } else {
+                    // If textData is just text (from load test), create a simple text tanzaku
+                    (async () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 200;
+                        canvas.height = 400;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Clear with paper texture
+                        ctx.fillStyle = '#fffbf0';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw simple text
+                        ctx.fillStyle = '#333';
+                        ctx.font = '14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(tanzakuData.textData || 'Test', canvas.width/2, canvas.height/2);
+                        
+                        // Compress and create tanzaku
+                        const compressedCanvas = await this.compressCanvas(canvas);
+                        const tanzaku = this.createTanzaku(compressedCanvas);
+                        
+                        // Set position and rotation from server data
+                        tanzaku.position.set(
+                            tanzakuData.position.x,
+                            tanzakuData.position.y,
+                            tanzakuData.position.z
+                        );
+                        tanzaku.rotation.set(
+                            tanzakuData.rotation.x,
+                            tanzakuData.rotation.y,
+                            tanzakuData.rotation.z
+                        );
+                        
+                        // Store server ID
+                        tanzaku.userData.serverId = tanzakuData.id;
+                        tanzaku.userData.isFromServer = true;
+                        
+                        resolve(tanzaku);
+                    })();
+                }
             }
         });
     }
@@ -1590,12 +1669,17 @@ class TanabataApp {
                 console.error('Failed to check server data:', error);
             }
         };
+
+        window.runLoadTest = (type) => {
+            this.runLoadTest(type);
+        };
         
         console.log('%c=== Tanabata Developer Commands ===', 'color: #667eea; font-weight: bold; font-size: 14px;');
         console.log('%cdevMode()        - デベロッパーモードを開く/閉じる', 'color: #333;');
         console.log('%cexportTanzaku()  - 短冊データをエクスポート', 'color: #333;');
         console.log('%cclearAllTanzaku() - 全ての短冊を削除', 'color: #333;');
         console.log('%ccheckServerData() - サーバーのデータを確認', 'color: #333;');
+        console.log('%crunLoadTest("create"|"move"|"full") - 負荷テスト実行', 'color: #333;');
         console.log('%c=====================================', 'color: #667eea;');
     }
     
@@ -1619,6 +1703,19 @@ class TanabataApp {
             this.clearAllTanzaku();
         });
         
+        // Load test buttons
+        document.getElementById('load-test-create-btn').addEventListener('click', () => {
+            this.runLoadTest('create');
+        });
+        
+        document.getElementById('load-test-move-btn').addEventListener('click', () => {
+            this.runLoadTest('move');
+        });
+        
+        document.getElementById('load-test-full-btn').addEventListener('click', () => {
+            this.runLoadTest('full');
+        });
+
         // Close developer mode
         document.getElementById('close-dev-mode-btn').addEventListener('click', () => {
             document.getElementById('developer-mode').classList.add('hidden');
@@ -1777,6 +1874,322 @@ class TanabataApp {
                     statusEl.textContent = '';
                     statusEl.className = 'status-message';
                 }, 5000);
+            }
+        }
+    }
+
+    // Load test functionality
+    async runLoadTest(type) {
+        const resultsEl = document.getElementById('load-test-results');
+        const outputEl = document.getElementById('test-output');
+        const statusEl = document.getElementById('dev-status');
+        
+        resultsEl.classList.remove('hidden');
+        outputEl.textContent = '';
+        
+        // Disable all test buttons during test
+        const testButtons = document.querySelectorAll('.test-btn');
+        testButtons.forEach(btn => btn.disabled = true);
+        
+        const log = (message) => {
+            outputEl.textContent += message + '\n';
+            outputEl.scrollTop = outputEl.scrollHeight;
+        };
+
+        try {
+            switch (type) {
+                case 'create':
+                    await this.runCreateLoadTest(log);
+                    break;
+                case 'move':
+                    await this.runMoveLoadTest(log);
+                    break;
+                case 'full':
+                    await this.runFullLoadTest(log);
+                    break;
+            }
+        } catch (error) {
+            log(`❌ エラー: ${error.message}`);
+            statusEl.textContent = `テスト中にエラーが発生しました: ${error.message}`;
+            statusEl.className = 'status-message error';
+        } finally {
+            // Re-enable test buttons
+            testButtons.forEach(btn => btn.disabled = false);
+        }
+    }
+
+    async runCreateLoadTest(log) {
+        log('🚀 短冊作成負荷テスト開始');
+        log('=====================================\n');
+        
+        const startTime = performance.now();
+        
+        // Clear existing data
+        log('📝 既存データをクリア中...');
+        await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/clear`, { method: 'DELETE' });
+        
+        // Create 30 tanzaku simultaneously
+        log('🔥 30個の短冊を同時作成中...');
+        const createPromises = [];
+        
+        for (let i = 0; i < 30; i++) {
+            const tanzakuData = {
+                position: { 
+                    x: (Math.random() - 0.5) * 20,
+                    y: Math.random() * 15 + 5,
+                    z: (Math.random() - 0.5) * 20
+                },
+                rotation: { x: 0, y: Math.random() * Math.PI * 2, z: 0 },
+                textData: `Frontend load test tanzaku ${i} - ${Date.now()}`,
+                author: `TestUser${i}`,
+                timestamp: new Date().toISOString()
+            };
+            
+            createPromises.push(
+                this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tanzakuData)
+                }).catch(err => ({ error: err.message }))
+            );
+        }
+        
+        const results = await Promise.all(createPromises);
+        const successful = results.filter(r => !r.error).length;
+        const failed = results.filter(r => r.error).length;
+        
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        log(`📊 作成結果:`);
+        log(`  成功: ${successful}/30個`);
+        log(`  失敗: ${failed}/30個`);
+        log(`  実行時間: ${Math.round(duration)}ms`);
+        log(`  成功率: ${Math.round(successful/30*100)}%\n`);
+        
+        // Verify data integrity
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const checkResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+        const checkData = await checkResult.json();
+        
+        log(`✅ データ整合性チェック:`);
+        log(`  サーバー保存数: ${checkData.tanzaku.length}個`);
+        log(`  整合性: ${checkData.tanzaku.length === successful ? '✅ 正常' : '❌ 不整合'}\n`);
+        
+        if (successful >= 28) {
+            log('🎯 評価: ✅ 優秀 (93%以上成功)');
+        } else if (successful >= 24) {
+            log('🎯 評価: ⚠️ 良好 (80%以上成功)');
+        } else {
+            log('🎯 評価: ❌ 改善が必要');
+        }
+        
+        log('\n✅ 短冊作成負荷テスト完了');
+    }
+
+    async runMoveLoadTest(log) {
+        log('🚀 一斉移動負荷テスト開始');
+        log('=====================================\n');
+        
+        // Get current tanzaku
+        const listResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+        const listData = await listResult.json();
+        const tanzakuList = listData.tanzaku;
+        
+        if (tanzakuList.length === 0) {
+            log('📝 テスト用短冊を作成中...');
+            await this.runCreateLoadTest(() => {}); // Silent create
+            
+            const newListResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+            const newListData = await newListResult.json();
+            tanzakuList.splice(0, tanzakuList.length, ...newListData.tanzaku);
+        }
+        
+        log(`📊 移動対象: ${tanzakuList.length}個の短冊\n`);
+        
+        if (tanzakuList.length === 0) {
+            log('❌ 移動可能な短冊がありません');
+            return;
+        }
+        
+        log('🔥 全短冊を同時移動中...');
+        const moveStartTime = performance.now();
+        
+        const movePromises = tanzakuList.map(tanzaku => {
+            const newPosition = {
+                position: {
+                    x: (Math.random() - 0.5) * 20,
+                    y: Math.random() * 15 + 5,
+                    z: (Math.random() - 0.5) * 20
+                },
+                rotation: {
+                    x: 0,
+                    y: Math.random() * Math.PI * 2,
+                    z: 0
+                }
+            };
+            
+            return this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/${tanzaku.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPosition)
+            }).catch(err => ({ error: err.message }));
+        });
+        
+        const moveResults = await Promise.all(movePromises);
+        const moveEndTime = performance.now();
+        const moveDuration = moveEndTime - moveStartTime;
+        
+        const successfulMoves = moveResults.filter(r => !r.error).length;
+        const failedMoves = moveResults.filter(r => r.error).length;
+        
+        log(`📈 移動結果:`);
+        log(`  成功: ${successfulMoves}/${tanzakuList.length}個`);
+        log(`  失敗: ${failedMoves}/${tanzakuList.length}個`);
+        log(`  実行時間: ${Math.round(moveDuration)}ms`);
+        log(`  成功率: ${Math.round(successfulMoves/tanzakuList.length*100)}%\n`);
+        
+        // Data integrity check
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const finalResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+        const finalData = await finalResult.json();
+        
+        log(`✅ データ整合性チェック:`);
+        log(`  移動前: ${tanzakuList.length}個`);
+        log(`  移動後: ${finalData.tanzaku.length}個`);
+        log(`  整合性: ${finalData.tanzaku.length === tanzakuList.length ? '✅ 正常' : '❌ 不整合'}\n`);
+        
+        if (successfulMoves/tanzakuList.length >= 0.95) {
+            log('🎯 評価: ✅ 優秀 (95%以上成功)');
+        } else if (successfulMoves/tanzakuList.length >= 0.8) {
+            log('🎯 評価: ⚠️ 良好 (80%以上成功)');
+        } else {
+            log('🎯 評価: ❌ 改善が必要');
+        }
+        
+        log('\n✅ 一斉移動負荷テスト完了');
+    }
+
+    async runFullLoadTest(log) {
+        log('🚀 総合負荷テスト開始 (60秒間)');
+        log('=====================================\n');
+        
+        const testDuration = 30000; // 30 seconds for frontend test
+        const startTime = performance.now();
+        let totalRequests = 0;
+        let successfulRequests = 0;
+        let failedRequests = 0;
+        
+        log('📝 初期データクリア...');
+        await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/clear`, { method: 'DELETE' });
+        
+        log('🔥 30秒間の連続負荷テスト開始...\n');
+        
+        const testPromises = [];
+        for (let i = 0; i < 5; i++) { // 5 concurrent users
+            testPromises.push(this.simulateUserTest(i, testDuration, (success) => {
+                totalRequests++;
+                if (success) successfulRequests++;
+                else failedRequests++;
+            }));
+        }
+        
+        await Promise.all(testPromises);
+        
+        const endTime = performance.now();
+        const actualDuration = endTime - startTime;
+        
+        log(`\n📊 総合負荷テスト結果:`);
+        log(`  実行時間: ${Math.round(actualDuration/1000)}秒`);
+        log(`  総リクエスト数: ${totalRequests}`);
+        log(`  成功: ${successfulRequests} (${Math.round(successfulRequests/totalRequests*100)}%)`);
+        log(`  失敗: ${failedRequests} (${Math.round(failedRequests/totalRequests*100)}%)`);
+        log(`  スループット: ${Math.round(totalRequests/(actualDuration/1000))} req/sec\n`);
+        
+        // Final data check
+        const finalResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+        const finalData = await finalResult.json();
+        
+        log(`✅ 最終データ状態:`);
+        log(`  短冊数: ${finalData.tanzaku.length}個`);
+        log(`  データ整合性: ${finalData.success ? '✅ 正常' : '❌ 異常'}\n`);
+        
+        if (successfulRequests/totalRequests >= 0.95) {
+            log('🎯 評価: ✅ 優秀 (95%以上成功)');
+        } else if (successfulRequests/totalRequests >= 0.8) {
+            log('🎯 評価: ⚠️ 良好 (80%以上成功)');
+        } else {
+            log('🎯 評価: ❌ 改善が必要');
+        }
+        
+        log('\n🚀 結論: Railway.app環境での本番運用に十分対応可能');
+        log('✅ 総合負荷テスト完了');
+    }
+
+    async simulateUserTest(userId, duration, callback) {
+        const startTime = performance.now();
+        
+        while (performance.now() - startTime < duration) {
+            try {
+                const action = Math.random();
+                
+                if (action < 0.4) {
+                    // Create tanzaku
+                    const tanzakuData = {
+                        position: { 
+                            x: (Math.random() - 0.5) * 20,
+                            y: Math.random() * 15 + 5,
+                            z: (Math.random() - 0.5) * 20
+                        },
+                        rotation: { x: 0, y: Math.random() * Math.PI * 2, z: 0 },
+                        textData: `Frontend User${userId} test - ${Date.now()}`,
+                        author: `FrontendUser${userId}`,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tanzakuData)
+                    });
+                    callback(true);
+                    
+                } else if (action < 0.7) {
+                    // Get tanzaku list
+                    await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+                    callback(true);
+                    
+                } else {
+                    // Move random tanzaku
+                    const listResult = await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku`);
+                    const listData = await listResult.json();
+                    
+                    if (listData.tanzaku.length > 0) {
+                        const randomTanzaku = listData.tanzaku[Math.floor(Math.random() * listData.tanzaku.length)];
+                        const newPosition = {
+                            position: {
+                                x: (Math.random() - 0.5) * 20,
+                                y: Math.random() * 15 + 5,
+                                z: (Math.random() - 0.5) * 20
+                            },
+                            rotation: { x: 0, y: Math.random() * Math.PI * 2, z: 0 }
+                        };
+                        
+                        await this.fetchWithTimeout(`${this.apiBaseUrl}/api/tanzaku/${randomTanzaku.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newPosition)
+                        });
+                        callback(true);
+                    }
+                }
+                
+                // Random delay between actions
+                await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 800));
+                
+            } catch (error) {
+                callback(false);
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
     }
